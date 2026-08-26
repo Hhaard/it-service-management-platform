@@ -1,15 +1,15 @@
-import './App.css'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import Dashboard from "./pages/Dashboard";
 
 function App() {
   return (
-    <div>
-      <h1>IT Service Management Platform</h1>
-
-      <p>
-        Manage incidents, service requests, support tickets,
-        and IT operations.
-      </p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
