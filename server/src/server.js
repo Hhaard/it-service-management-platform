@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const connectDB = require("./config/database");
+const ticketRoutes = require("./routes/ticketRoutes");
 
 const app = express();
 
@@ -19,6 +20,9 @@ app.get("/api/health", (req, res) => {
     message: "IT Service Management API is running",
   });
 });
+
+// Ticket routes
+app.use("/api/tickets", ticketRoutes);
 
 // Start server
 const startServer = async () => {
