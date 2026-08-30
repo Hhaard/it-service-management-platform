@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Tickets from "./components/Tickets";
 import "./App.css";
 
 const API_URL = "http://localhost:5000/api";
@@ -19,6 +20,7 @@ function App() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState("dashboard");
 
   const fetchTickets = async () => {
     try {
@@ -120,15 +122,25 @@ function App() {
         </div>
 
         <nav className="navigation">
-          <a href="#dashboard" className="nav-item active">
-            <span>▦</span>
-            Dashboard
-          </a>
+        <button
+  className={`nav-item ${
+    currentPage === "dashboard" ? "active" : ""
+  }`}
+  onClick={() => setCurrentPage("dashboard")}
+>
+  <span>▦</span>
+  Dashboard
+</button>
 
-          <a href="#tickets" className="nav-item">
-            <span>▤</span>
-            Tickets
-          </a>
+<button
+  className={`nav-item ${
+    currentPage === "tickets" ? "active" : ""
+  }`}
+  onClick={() => setCurrentPage("tickets")}
+>
+  <span>▤</span>
+  Tickets
+</button>
 
           <a href="#users" className="nav-item">
             <span>♙</span>
@@ -340,7 +352,8 @@ function App() {
     </div>
   </div>
 )}
-        <section id="dashboard" className="dashboard">
+        {currentPage === "dashboard" && (
+          <section id="dashboard" className="dashboard">
           <div className="welcome">
             <div>
               <h3>Welcome back, Haard</h3>
@@ -485,6 +498,18 @@ function App() {
             )}
           </section>
         </section>
+                )}
+                {currentPage === "tickets" && (
+                  <Tickets
+                    tickets={tickets}
+                    onRefresh={fetchTickets}
+                    onCreateTicket={() => {
+                      setCreateError("");
+                      setShowCreateForm(true);
+                    }}
+                  />
+                )}
+                
       </main>
     </div>
   );
