@@ -577,7 +577,7 @@ a {
   width: 100%;
   border: 1px solid #d1d5db;
   border-radius: 7px;
-  padding: 11px 12px;
+  padding: 10px 12px;
   font-family: inherit;
   font-size: 13px;
   color: #1f2937;
@@ -599,7 +599,7 @@ a {
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 14px;
 }
 
 .form-error {
@@ -755,7 +755,7 @@ a {
   /* Description */
   
   .form-group textarea {
-    min-height: 125px;
+    min-height: 105px;
     line-height: 1.55;
   }
   
@@ -828,7 +828,7 @@ a {
   /* Form spacing */
   
   .form-group {
-    margin-bottom: 21px;
+    margin-bottom: 16px;
   }
   
   .form-row {
@@ -1199,7 +1199,7 @@ a {
   }
 
   .form-group {
-    margin-bottom: 21px;
+    margin-bottom: 16px;
   }
 
   .field-footer {
@@ -1644,9 +1644,9 @@ a {
 
    .ticket-details-page {
     width: 100%;
-    max-width: 900px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 35px 40px 50px;
+    padding: 25px 30px 40px;
     box-sizing: border-box;
   }
   
@@ -1830,12 +1830,12 @@ a {
   .edit-form {
     width: 100%;
     box-sizing: border-box;
-    padding: 25px 25px 10px;
+    padding: 20px 24px 8px;
   }
   
   .form-group {
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
   
   .form-group label {
@@ -1873,7 +1873,7 @@ a {
   /* Textarea */
   
   .form-group textarea {
-    min-height: 130px;
+    min-height: 105px;
     resize: vertical;
     line-height: 1.5;
   }
@@ -1883,7 +1883,7 @@ a {
   .form-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
+    gap: 14px;
     width: 100%;
   }
   
@@ -1900,7 +1900,7 @@ a {
     justify-content: flex-end;
     align-items: center;
     gap: 10px;
-    padding: 18px 25px;
+    padding: 14px 24px;
     border-top: 1px solid #edf0f4;
   }
   
