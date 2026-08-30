@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Tickets from "./components/Tickets";
+import TicketDetails from "./components/TicketDetails";
 import "./App.css";
 
 const API_URL = "http://localhost:5000/api";
@@ -21,6 +22,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState("dashboard");
+  const [selectedTicket, setSelectedTicket] = useState(null);
 
   const fetchTickets = async () => {
     try {
@@ -501,11 +503,35 @@ function App() {
                 )}
                 {currentPage === "tickets" && (
                   <Tickets
-                    tickets={tickets}
-                    onRefresh={fetchTickets}
-                    onCreateTicket={() => {
-                      setCreateError("");
-                      setShowCreateForm(true);
+                  tickets={tickets}
+                  onRefresh={fetchTickets}
+                  onCreateTicket={() => {
+                    setCreateError("");
+                    setShowCreateForm(true);
+                  }}
+                  onSelectTicket={(ticket) => {
+                    setSelectedTicket(ticket);
+                    setCurrentPage("ticket-details");
+                  }}
+                />
+                )}
+                {currentPage === "ticket-details" && selectedTicket && (
+                  <TicketDetails
+                    ticket={selectedTicket}
+                    onBack={() => {
+                      setSelectedTicket(null);
+                      setCurrentPage("tickets");
+                    }}
+                    onTicketUpdated={(updatedTicket) => {
+                      setTickets((previous) =>
+                        previous.map((ticket) =>
+                          ticket._id === updatedTicket._id
+                            ? updatedTicket
+                            : ticket
+                        )
+                      );
+                
+                      setSelectedTicket(updatedTicket);
                     }}
                   />
                 )}

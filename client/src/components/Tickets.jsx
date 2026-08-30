@@ -1,6 +1,11 @@
 import { useMemo, useState } from "react";
 
-function Tickets({ tickets, onRefresh, onCreateTicket }) {
+function Tickets({
+    tickets,
+    onRefresh,
+    onCreateTicket,
+    onSelectTicket,
+  }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
@@ -173,9 +178,10 @@ function Tickets({ tickets, onRefresh, onCreateTicket }) {
               <tbody>
                 {filteredTickets.map((ticket) => (
                   <tr
-                    key={ticket._id}
-                    className="ticket-row"
-                  >
+                  key={ticket._id}
+                  className="ticket-row"
+                  onClick={() => onSelectTicket(ticket)}
+                >
                     <td>
                       <div className="ticket-title">
                         <strong>{ticket.title}</strong>

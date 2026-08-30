@@ -1435,5 +1435,576 @@ a {
       width: 100%;
     }
   }
+  /* =====================================================
+   Ticket Details
+   ===================================================== */
+
+.ticket-details-page {
+  padding: 30px 36px;
+}
+
+.back-button {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 25px;
+}
+
+.back-button:hover {
+  color: #2563eb;
+}
+
+.ticket-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 25px;
+  margin-bottom: 25px;
+}
+
+.ticket-id {
+  display: inline-block;
+  margin-bottom: 7px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.ticket-details-header h2 {
+  margin: 0 0 8px;
+  color: #111827;
+  font-size: 24px;
+  letter-spacing: -0.4px;
+}
+
+.ticket-created {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.edit-ticket-button {
+  height: 39px;
+  padding: 0 15px;
+  border: 1px solid #d7dce3;
+  border-radius: 7px;
+  background: white;
+  color: #374151;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.edit-ticket-button:hover {
+  background: #f8fafc;
+  border-color: #c5cbd4;
+}
+
+/* Detail cards */
+
+.ticket-details-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
+  gap: 20px;
+}
+
+.details-card,
+.ticket-edit-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.details-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid #edf0f4;
+}
+
+.details-card-header h3 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 14px;
+}
+
+.details-card-header span {
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.description-section {
+  padding: 22px;
+}
+
+.description-section label {
+  display: block;
+  margin-bottom: 10px;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.description-section p {
+  margin: 0;
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* Properties */
+
+.property-list {
+  padding: 7px 20px;
+}
+
+.property {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 55px;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.property:last-child {
+  border-bottom: none;
+}
+
+.property > span {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.property > strong {
+  color: #374151;
+  font-size: 12px;
+}
+
+/* Edit */
+
+.ticket-edit-card {
+  overflow: hidden;
+}
+
+.edit-form {
+  padding: 25px 22px 5px;
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 50px 50px;
+  border-top: 1px solid #edf0f4;
+}
+
+/* Clickable rows */
+
+.ticket-row {
+  cursor: pointer;
+}
+
+.ticket-row:hover {
+  background: #f8fafc;
+}
+
+/* Mobile */
+
+@media (max-width: 800px) {
+  .ticket-details-page {
+    padding: 24px 20px;
+  }
+
+  .ticket-details-header {
+    flex-direction: column;
+  }
+
+  .ticket-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-ticket-button {
+    width: 500%;
+  }
+}
+/* =====================================================
+   CENTERED TICKET DETAILS / EDIT PAGE
+   ===================================================== */
+
+   .ticket-details-page {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 35px 40px 50px;
+    box-sizing: border-box;
+  }
   
+  /* Back button */
+  
+  .back-button {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  
+  .back-button:hover {
+    text-decoration: underline;
+  }
+  
+  /* Header */
+  
+  .ticket-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 25px;
+    margin-bottom: 25px;
+  }
+  
+  .eyebrow {
+    margin: 0 0 8px;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  
+  .ticket-id {
+    margin-bottom: 7px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  
+  .ticket-details-header h2 {
+    margin: 0 0 8px;
+    color: #111827;
+    font-size: 26px;
+    line-height: 1.2;
+  }
+  
+  .ticket-created {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 12px;
+  }
+  
+  /* Edit button */
+  
+  .edit-ticket-button {
+    padding: 10px 16px;
+    border: 1px solid #d7dce3;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  
+  .edit-ticket-button:hover {
+    background: #f8fafc;
+  }
+  
+  /* =====================================================
+     TICKET INFORMATION CARDS
+     ===================================================== */
+  
+  .ticket-details-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+    gap: 20px;
+    width: 100%;
+  }
+  
+  .details-card,
+  .ticket-edit-card {
+    width: 100%;
+    box-sizing: border-box;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+  }
+  
+  .details-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid #edf0f4;
+  }
+  
+  .details-card-header h3 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 14px;
+  }
+  
+  .details-card-header span {
+    color: #94a3b8;
+    font-size: 11px;
+  }
+  
+  /* Description */
+  
+  .description-section {
+    padding: 22px;
+  }
+  
+  .description-section label {
+    display: block;
+    margin-bottom: 10px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .description-section p {
+    margin: 0;
+    color: #374151;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  
+  /* =====================================================
+     TICKET PROPERTIES
+     ===================================================== */
+  
+  .property-list {
+    padding: 7px 20px;
+  }
+  
+  .property {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    min-height: 55px;
+    border-bottom: 1px solid #f1f3f5;
+  }
+  
+  .property:last-child {
+    border-bottom: none;
+  }
+  
+  .property > span {
+    color: #64748b;
+    font-size: 12px;
+  }
+  
+  .property > strong {
+    color: #374151;
+    font-size: 12px;
+  }
+  
+  /* =====================================================
+     EDIT TICKET FORM
+     ===================================================== */
+  
+  .ticket-edit-card {
+    overflow: hidden;
+  }
+  
+  .edit-form {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 25px 25px 10px;
+  }
+  
+  .form-group {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 650;
+  }
+  
+  /* Text input */
+  
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 12px;
+    border: 1px solid #d7dce3;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #1f2937;
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+  }
+  
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+  }
+  
+  /* Textarea */
+  
+  .form-group textarea {
+    min-height: 130px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+  
+  /* Status / Priority / Category row */
+  
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    width: 100%;
+  }
+  
+  /* Assigned To */
+  
+  .form-row + .form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  /* Action buttons */
+  
+  .edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 25px;
+    border-top: 1px solid #edf0f4;
+  }
+  
+  .cancel-button {
+    padding: 10px 17px;
+    border: 1px solid #d7dce3;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #374151;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  
+  .cancel-button:hover {
+    background: #f8fafc;
+  }
+  
+  .submit-button {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 7px;
+    background: #2563eb;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  
+  .submit-button:hover {
+    background: #1d4ed8;
+  }
+  
+  .submit-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Error */
+  
+  .form-error {
+    margin-bottom: 20px;
+    padding: 12px 14px;
+    border: 1px solid #fecaca;
+    border-radius: 7px;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 12px;
+  }
+  
+  /* =====================================================
+     CLICKABLE TICKET ROW
+     ===================================================== */
+  
+  .ticket-row {
+    cursor: pointer;
+  }
+  
+  .ticket-row:hover {
+    background: #f8fafc;
+  }
+  
+  /* =====================================================
+     RESPONSIVE
+     ===================================================== */
+  
+  @media (max-width: 900px) {
+    .ticket-details-page {
+      max-width: 100%;
+      padding: 25px;
+    }
+  
+    .ticket-details-grid {
+      grid-template-columns: 1fr;
+    }
+  
+    .form-row,
+    .form-row + .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  @media (max-width: 600px) {
+    .ticket-details-page {
+      padding: 20px 15px;
+    }
+  
+    .ticket-details-header {
+      flex-direction: column;
+    }
+  
+    .edit-ticket-button {
+      width: 100%;
+    }
+  
+    .edit-actions {
+      flex-direction: column-reverse;
+    }
+  
+    .cancel-button,
+    .submit-button {
+      width: 100%;
+    }
+  }
 }
