@@ -18,6 +18,7 @@ function TicketDetails({
   });
 
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
 
   const handleChange = (event) => {
@@ -62,6 +63,41 @@ function TicketDetails({
     }
   };
 
+  const handleDelete = async () => {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ticket #${ticket._id
+        .slice(-6)
+        .toUpperCase()}?\n\nThis action cannot be undone.`
+    );
+  
+    if (!confirmed) {
+      return;
+    }
+  
+    setDeleting(true);
+    setError("");
+  
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/tickets/${ticket._id}`,
+        {
+          method: "DELETE",
+        }
+      );
+  
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to delete ticket");
+      }
+  
+      onBack();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <section className="ticket-details-page">
 
@@ -91,12 +127,25 @@ function TicketDetails({
           </p>
         </div>
 
-        <button
-          className="edit-ticket-button"
-          onClick={() => setIsEditing(!isEditing)}
-        >
-          {isEditing ? "Cancel Edit" : "Edit Ticket"}
-        </button>
+        <div className="ticket-header-actions">
+
+  <button
+    className="delete-ticket-button"
+    onClick={handleDelete}
+    disabled={deleting}
+  >
+    {deleting ? "Deleting..." : "Delete Ticket"}
+  </button>
+
+  <button
+    className="edit-ticket-button"
+    onClick={() => setIsEditing(!isEditing)}
+    disabled={deleting}
+  >
+    {isEditing ? "Cancel Edit" : "Edit Ticket"}
+  </button>
+
+</div>
 
       </div>
 

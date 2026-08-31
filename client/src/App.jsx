@@ -242,6 +242,7 @@ function App() {
     value={formData.description}
     onChange={handleInputChange}
     rows="10"
+    maxLength={1000}
     required
   />
 </div>
@@ -315,13 +316,14 @@ function App() {
     The person reporting the issue.
   </small>
   <div className="requester-input">
-    <input
-      id="requester"
-      name="requester"
-      type="text"
-      onChange={handleInputChange}
-      required
-    />
+  <input
+  id="requester"
+  name="requester"
+  type="text"
+  value={formData.requester}
+  onChange={handleInputChange}
+  required
+/>
   </div>
 
  
@@ -415,9 +417,12 @@ function App() {
                 <p>Latest service desk activity</p>
               </div>
 
-              <button className="view-all">
-                View all →
-              </button>
+              <button
+  className="view-all"
+  onClick={() => setCurrentPage("tickets")}
+>
+  View all →
+</button>
             </div>
 
             {loading && (
@@ -456,8 +461,15 @@ function App() {
                   </thead>
 
                   <tbody>
-                    {tickets.slice(0, 10).map((ticket) => (
-                      <tr key={ticket._id}>
+                  {tickets.slice(0, 10).map((ticket) => (
+                  <tr
+                    key={ticket._id}
+                    className="ticket-row"
+                    onClick={() => {
+                      setSelectedTicket(ticket);
+                      setCurrentPage("ticket-details");
+                    }}
+                  >
                         <td>
                           <div className="ticket-title">
                             <strong>{ticket.title}</strong>

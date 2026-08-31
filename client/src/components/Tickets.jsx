@@ -12,26 +12,26 @@ function Tickets({
   const [categoryFilter, setCategoryFilter] = useState("All");
 
   const filteredTickets = useMemo(() => {
-    return tickets.filter((ticket) => {
-      const searchText = search.toLowerCase();
-
+    const results = tickets.filter((ticket) => {
+      const searchText = search.toLowerCase().trim();
+  
       const matchesSearch =
         ticket.title.toLowerCase().includes(searchText) ||
         ticket.description.toLowerCase().includes(searchText) ||
         ticket.requester.toLowerCase().includes(searchText);
-
+  
       const matchesStatus =
         statusFilter === "All" ||
         ticket.status === statusFilter;
-
+  
       const matchesPriority =
         priorityFilter === "All" ||
         ticket.priority === priorityFilter;
-
+  
       const matchesCategory =
         categoryFilter === "All" ||
         ticket.category === categoryFilter;
-
+  
       return (
         matchesSearch &&
         matchesStatus &&
@@ -39,13 +39,12 @@ function Tickets({
         matchesCategory
       );
     });
-  }, [
-    tickets,
-    search,
-    statusFilter,
-    priorityFilter,
-    categoryFilter,
-  ]);
+  
+    return [...results].sort(
+      (a, b) =>
+        new Date(b.createdAt) - new Date(a.createdAt)
+    );
+  }, [tickets, search, statusFilter, priorityFilter, categoryFilter]);
 
   const clearFilters = () => {
     setSearch("");
@@ -136,21 +135,22 @@ function Tickets({
       </div>
 
       <div className="ticket-results">
-        <div className="results-header">
-          <div>
-            <strong>{filteredTickets.length}</strong>{" "}
-            {filteredTickets.length === 1
-              ? "ticket"
-              : "tickets"}
-          </div>
+      <div className="results-header">
+  <div>
+    Showing{" "}
+    <strong>{filteredTickets.length}</strong>{" "}
+    {filteredTickets.length === 1
+      ? "ticket"
+      : "tickets"}
+  </div>
 
-          <button
-            className="refresh-button"
-            onClick={onRefresh}
-          >
-            ↻ Refresh
-          </button>
-        </div>
+  <button
+    className="refresh-button"
+    onClick={onRefresh}
+  >
+    ↻ Refresh
+  </button>
+</div>
 
         {filteredTickets.length === 0 ? (
           <div className="no-results">
