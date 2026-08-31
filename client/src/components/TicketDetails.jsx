@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function TicketDetails({
   ticket,
@@ -21,6 +21,33 @@ function TicketDetails({
   const [deleting, setDeleting] = useState(false);
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [error, setError] = useState("");
+  const [activities, setActivities] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        setActivityLoading(true);
+  
+        const response = await fetch(
+          `http://localhost:5000/api/tickets/${ticket._id}/activity`
+        );
+  
+        if (!response.ok) {
+          throw new Error("Failed to fetch ticket activity");
+        }
+  
+        const data = await response.json();
+        setActivities(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setActivityLoading(false);
+      }
+    };
+  
+    fetchActivities();
+  }, [ticket._id]);
 
 
   const handleChange = (event) => {
@@ -62,6 +89,14 @@ function TicketDetails({
       setError(err.message);
     } finally {
       setSaving(false);
+      const activityResponse = await fetch(
+        `http://localhost:5000/api/tickets/${ticket._id}/activity`
+      );
+      
+      if (activityResponse.ok) {
+        const activityData = await activityResponse.json();
+        setActivities(activityData);
+      }
     }
   };
 
@@ -129,6 +164,15 @@ function TicketDetails({
       setError(err.message);
     } finally {
       setWorkflowLoading(false);
+
+      const activityResponse = await fetch(
+        `http://localhost:5000/api/tickets/${ticket._id}/activity`
+      );
+      
+      if (activityResponse.ok) {
+        const activityData = await activityResponse.json();
+        setActivities(activityData);
+      }
     }
   };
 
@@ -234,87 +278,154 @@ function TicketDetails({
 
       {!isEditing ? (
 
-        <div className="ticket-details-grid">
+<div>
+  <div className="ticket-details-grid">
 
-          <div className="details-card main-details">
+            <div className="details-card main-details">
 
-            <div className="details-card-header">
-              <h3>Ticket Information</h3>
+              <div className="details-card-header">
+                <h3>Ticket Information</h3>
+              </div>
+
+              <div className="description-section">
+
+                <label>Description</label>
+
+                <p>
+                  {ticket.description}
+                </p>
+
+              </div>
+
             </div>
 
-            <div className="description-section">
+            <div className="details-card">
 
-              <label>Description</label>
+              <div className="details-card-header">
+                <h3>Ticket Properties</h3>
+              </div>
 
-              <p>
-                {ticket.description}
-              </p>
+              <div className="property-list">
+
+                <div className="property">
+                  <span>Status</span>
+
+                  <strong
+                    className={`status ${ticket.status
+                      .toLowerCase()
+                      .replace(" ", "-")}`}
+                  >
+                    {ticket.status}
+                  </strong>
+                </div>
+
+                <div className="property">
+                  <span>Priority</span>
+
+                  <strong
+                    className={`priority ${ticket.priority
+                      .toLowerCase()
+                      .replace(" ", "-")}`}
+                  >
+                    {ticket.priority}
+                  </strong>
+                </div>
+
+                <div className="property">
+                  <span>Category</span>
+
+                  <strong>
+                    {ticket.category}
+                  </strong>
+                </div>
+
+                <div className="property">
+                  <span>Requester</span>
+
+                  <strong>
+                    {ticket.requester}
+                  </strong>
+                </div>
+
+                <div className="property">
+                  <span>Assigned To</span>
+
+                  <strong>
+                    {ticket.assignedTo || "Unassigned"}
+                  </strong>
+                </div>
+
+              </div>
 
             </div>
 
           </div>
 
-          <div className="details-card">
+  <div className="activity-card">
 
-            <div className="details-card-header">
-              <h3>Ticket Properties</h3>
+  <div className="details-card-header">
+    <div>
+      <h3>Activity</h3>
+    </div>
+
+    <span>
+      Ticket history
+    </span>
+  </div>
+
+  <div className="activity-list">
+
+    {activityLoading ? (
+      <div className="activity-loading">
+        Loading activity...
+      </div>
+    ) : activities.length === 0 ? (
+      <div className="activity-empty">
+        No activity recorded yet.
+      </div>
+    ) : (
+      activities.map((activity) => (
+        <div
+          className="activity-item"
+          key={activity._id}
+        >
+
+          <div className="activity-marker">
+            <span></span>
+          </div>
+
+          <div className="activity-content">
+
+            <div className="activity-top">
+              <strong>
+                {activity.action}
+              </strong>
+
+              <time>
+                {new Date(
+                  activity.createdAt
+                ).toLocaleString()}
+              </time>
             </div>
 
-            <div className="property-list">
+            <p>
+              {activity.description}
+            </p>
 
-              <div className="property">
-                <span>Status</span>
-
-                <strong
-                  className={`status ${ticket.status
-                    .toLowerCase()
-                    .replace(" ", "-")}`}
-                >
-                  {ticket.status}
-                </strong>
-              </div>
-
-              <div className="property">
-                <span>Priority</span>
-
-                <strong
-                  className={`priority ${ticket.priority
-                    .toLowerCase()
-                    .replace(" ", "-")}`}
-                >
-                  {ticket.priority}
-                </strong>
-              </div>
-
-              <div className="property">
-                <span>Category</span>
-
-                <strong>
-                  {ticket.category}
-                </strong>
-              </div>
-
-              <div className="property">
-                <span>Requester</span>
-
-                <strong>
-                  {ticket.requester}
-                </strong>
-              </div>
-
-              <div className="property">
-                <span>Assigned To</span>
-
-                <strong>
-                  {ticket.assignedTo || "Unassigned"}
-                </strong>
-              </div>
-
-            </div>
+            <small>
+              By {activity.performedBy}
+            </small>
 
           </div>
 
         </div>
+      ))
+    )}
+
+  </div>
+
+  </div>
+</div>
 
       ) : (
 

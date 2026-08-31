@@ -3093,4 +3093,116 @@ background: #ffffff;
     cursor: not-allowed;
   }
 
+  /* =====================================================
+   TICKET ACTIVITY TIMELINE
+   ===================================================== */
+
+.activity-card {
+  width: 100%;
+  margin-top: 20px;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.035);
+}
+
+.activity-list {
+  padding: 8px 22px 18px;
+}
+
+.activity-item {
+  display: flex;
+  gap: 13px;
+  position: relative;
+  padding: 14px 0;
+}
+
+.activity-item:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 31px;
+  bottom: -14px;
+  left: 5px;
+  width: 1px;
+  background: #e5e7eb;
+}
+
+.activity-marker {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 11px;
+  flex-shrink: 0;
+}
+
+.activity-marker span {
+  width: 9px;
+  height: 9px;
+  margin-top: 4px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 0 0 1px #bfdbfe;
+}
+
+.activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.activity-top strong {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.activity-top time {
+  color: #94a3b8;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.activity-content p {
+  margin: 5px 0 4px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.activity-content small {
+  color: #a1aab7;
+  font-size: 10px;
+}
+
+.activity-loading,
+.activity-empty {
+  padding: 25px 5px;
+  color: #94a3b8;
+  font-size: 11px;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .activity-top {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .activity-list {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
 }
