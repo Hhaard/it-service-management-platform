@@ -1,6 +1,5 @@
 * {
   box-sizing: border-box;
-}
 
 body {
   margin: 0;
@@ -2017,6 +2016,12 @@ background: #ffffff;
       width: 100%;
       flex-direction: column;
     }
+    .ticket-header-actions .workflow-button,
+    .ticket-header-actions .edit-ticket-button,
+    .ticket-header-actions .delete-ticket-button {
+      width: 100%;
+    }
+  }
     
     .delete-ticket-button,
     .edit-ticket-button {
@@ -2796,6 +2801,7 @@ background: #ffffff;
    ===================================================== */
 
 .modal-overlay {
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
   background: rgba(15, 23, 42, 0.42);
   padding: 24px;
@@ -3035,4 +3041,56 @@ background: #ffffff;
     width: 100%;
   }
 }
+
+/* =====================================================
+   TICKET WORKFLOW ACTIONS
+   ===================================================== */
+
+   .workflow-button {
+    min-height: 38px;
+    padding: 0 15px;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    cursor: pointer;
+    transition:
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease,
+      transform 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+  
+  .workflow-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+  
+  .workflow-button.primary {
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #2563eb;
+  }
+  
+  .workflow-button.primary:hover:not(:disabled) {
+    background: #dbeafe;
+    border-color: #93c5fd;
+  }
+  
+  .workflow-button.success {
+    border: 1px solid #bbf7d0;
+    background: #f0fdf4;
+    color: #15803d;
+  }
+  
+  .workflow-button.success:hover:not(:disabled) {
+    background: #dcfce7;
+    border-color: #86efac;
+  }
+  
+  .workflow-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
 }

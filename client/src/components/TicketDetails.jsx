@@ -19,7 +19,9 @@ function TicketDetails({
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [workflowLoading, setWorkflowLoading] = useState(false);
   const [error, setError] = useState("");
+
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -98,6 +100,39 @@ function TicketDetails({
     }
   };
 
+  const handleWorkflowAction = async (updates) => {
+    setWorkflowLoading(true);
+    setError("");
+  
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/tickets/${ticket._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updates),
+        }
+      );
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to update ticket"
+        );
+      }
+  
+      onTicketUpdated(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setWorkflowLoading(false);
+    }
+  };
+
+
   return (
     <section className="ticket-details-page">
 
@@ -129,10 +164,52 @@ function TicketDetails({
 
         <div className="ticket-header-actions">
 
+  {!isEditing && ticket.status === "Open" && (
+    <button
+      className="workflow-button primary"
+      onClick={() =>
+        handleWorkflowAction({
+          status: "In Progress",
+        })
+      }
+      disabled={workflowLoading || deleting}
+    >
+      {workflowLoading ? "Updating..." : "Start Work"}
+    </button>
+  )}
+
+  {!isEditing && ticket.status === "In Progress" && (
+    <button
+      className="workflow-button success"
+      onClick={() =>
+        handleWorkflowAction({
+          status: "Resolved",
+        })
+      }
+      disabled={workflowLoading || deleting}
+    >
+      {workflowLoading ? "Updating..." : "Resolve"}
+    </button>
+  )}
+
+  {!isEditing && ticket.status === "Resolved" && (
+    <button
+      className="workflow-button primary"
+      onClick={() =>
+        handleWorkflowAction({
+          status: "Closed",
+        })
+      }
+      disabled={workflowLoading || deleting}
+    >
+      {workflowLoading ? "Updating..." : "Close Ticket"}
+    </button>
+  )}
+
   <button
     className="delete-ticket-button"
     onClick={handleDelete}
-    disabled={deleting}
+    disabled={workflowLoading || deleting}
   >
     {deleting ? "Deleting..." : "Delete Ticket"}
   </button>
@@ -140,7 +217,7 @@ function TicketDetails({
   <button
     className="edit-ticket-button"
     onClick={() => setIsEditing(!isEditing)}
-    disabled={deleting}
+    disabled={workflowLoading || deleting}
   >
     {isEditing ? "Cancel Edit" : "Edit Ticket"}
   </button>
