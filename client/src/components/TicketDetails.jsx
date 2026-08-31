@@ -20,23 +20,28 @@ function TicketDetails({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [workflowLoading, setWorkflowLoading] = useState(false);
+
   const [error, setError] = useState("");
+
   const [activities, setActivities] = useState([]);
   const [activityLoading, setActivityLoading] = useState(true);
+
+  const [note, setNote] = useState("");
+  const [noteSaving, setNoteSaving] = useState(false);
 
   useEffect(() => {
     const fetchActivities = async () => {
       try {
         setActivityLoading(true);
-  
+
         const response = await fetch(
           `http://localhost:5000/api/tickets/${ticket._id}/activity`
         );
-  
+
         if (!response.ok) {
           throw new Error("Failed to fetch ticket activity");
         }
-  
+
         const data = await response.json();
         setActivities(data);
       } catch (err) {
@@ -45,10 +50,26 @@ function TicketDetails({
         setActivityLoading(false);
       }
     };
-  
+
     fetchActivities();
   }, [ticket._id]);
 
+  const refreshActivities = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/tickets/${ticket._id}/activity`
+      );
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+      setActivities(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -77,26 +98,23 @@ function TicketDetails({
         }
       );
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error("Failed to update ticket");
+        throw new Error(
+          data.message || "Failed to update ticket"
+        );
       }
 
-      const updatedTicket = await response.json();
+      onTicketUpdated(data);
 
-      onTicketUpdated(updatedTicket);
+      await refreshActivities();
+
       setIsEditing(false);
     } catch (err) {
       setError(err.message);
     } finally {
       setSaving(false);
-      const activityResponse = await fetch(
-        `http://localhost:5000/api/tickets/${ticket._id}/activity`
-      );
-      
-      if (activityResponse.ok) {
-        const activityData = await activityResponse.json();
-        setActivities(activityData);
-      }
     }
   };
 
@@ -106,14 +124,14 @@ function TicketDetails({
         .slice(-6)
         .toUpperCase()}?\n\nThis action cannot be undone.`
     );
-  
+
     if (!confirmed) {
       return;
     }
-  
+
     setDeleting(true);
     setError("");
-  
+
     try {
       const response = await fetch(
         `http://localhost:5000/api/tickets/${ticket._id}`,
@@ -121,12 +139,15 @@ function TicketDetails({
           method: "DELETE",
         }
       );
-  
+
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.message || "Failed to delete ticket");
+        throw new Error(
+          data.message || "Failed to delete ticket"
+        );
       }
-  
+
       onBack();
     } catch (err) {
       setError(err.message);
@@ -138,7 +159,7 @@ function TicketDetails({
   const handleWorkflowAction = async (updates) => {
     setWorkflowLoading(true);
     setError("");
-  
+
     try {
       const response = await fetch(
         `http://localhost:5000/api/tickets/${ticket._id}`,
@@ -150,32 +171,70 @@ function TicketDetails({
           body: JSON.stringify(updates),
         }
       );
-  
+
       const data = await response.json();
-  
+
       if (!response.ok) {
         throw new Error(
           data.message || "Failed to update ticket"
         );
       }
-  
+
       onTicketUpdated(data);
+
+      await refreshActivities();
     } catch (err) {
       setError(err.message);
     } finally {
       setWorkflowLoading(false);
-
-      const activityResponse = await fetch(
-        `http://localhost:5000/api/tickets/${ticket._id}/activity`
-      );
-      
-      if (activityResponse.ok) {
-        const activityData = await activityResponse.json();
-        setActivities(activityData);
-      }
     }
   };
 
+  const handleAddNote = async (event) => {
+    event.preventDefault();
+
+    if (!note.trim()) {
+      return;
+    }
+
+    setNoteSaving(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/tickets/${ticket._id}/activity`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            description: note,
+            performedBy: "Haard Patel",
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to add internal note"
+        );
+      }
+
+      setActivities((previous) => [
+        data,
+        ...previous,
+      ]);
+
+      setNote("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setNoteSaving(false);
+    }
+  };
 
   return (
     <section className="ticket-details-page">
@@ -208,65 +267,89 @@ function TicketDetails({
 
         <div className="ticket-header-actions">
 
-  {!isEditing && ticket.status === "Open" && (
-    <button
-      className="workflow-button primary"
-      onClick={() =>
-        handleWorkflowAction({
-          status: "In Progress",
-        })
-      }
-      disabled={workflowLoading || deleting}
-    >
-      {workflowLoading ? "Updating..." : "Start Work"}
-    </button>
-  )}
+          {!isEditing && ticket.status === "Open" && (
+            <button
+              className="workflow-button primary"
+              onClick={() =>
+                handleWorkflowAction({
+                  status: "In Progress",
+                })
+              }
+              disabled={
+                workflowLoading || deleting
+              }
+            >
+              {workflowLoading
+                ? "Updating..."
+                : "Start Work"}
+            </button>
+          )}
 
-  {!isEditing && ticket.status === "In Progress" && (
-    <button
-      className="workflow-button success"
-      onClick={() =>
-        handleWorkflowAction({
-          status: "Resolved",
-        })
-      }
-      disabled={workflowLoading || deleting}
-    >
-      {workflowLoading ? "Updating..." : "Resolve"}
-    </button>
-  )}
+          {!isEditing &&
+            ticket.status === "In Progress" && (
+              <button
+                className="workflow-button success"
+                onClick={() =>
+                  handleWorkflowAction({
+                    status: "Resolved",
+                  })
+                }
+                disabled={
+                  workflowLoading || deleting
+                }
+              >
+                {workflowLoading
+                  ? "Updating..."
+                  : "Resolve"}
+              </button>
+            )}
 
-  {!isEditing && ticket.status === "Resolved" && (
-    <button
-      className="workflow-button primary"
-      onClick={() =>
-        handleWorkflowAction({
-          status: "Closed",
-        })
-      }
-      disabled={workflowLoading || deleting}
-    >
-      {workflowLoading ? "Updating..." : "Close Ticket"}
-    </button>
-  )}
+          {!isEditing &&
+            ticket.status === "Resolved" && (
+              <button
+                className="workflow-button primary"
+                onClick={() =>
+                  handleWorkflowAction({
+                    status: "Closed",
+                  })
+                }
+                disabled={
+                  workflowLoading || deleting
+                }
+              >
+                {workflowLoading
+                  ? "Updating..."
+                  : "Close Ticket"}
+              </button>
+            )}
 
-  <button
-    className="delete-ticket-button"
-    onClick={handleDelete}
-    disabled={workflowLoading || deleting}
-  >
-    {deleting ? "Deleting..." : "Delete Ticket"}
-  </button>
+          <button
+            className="delete-ticket-button"
+            onClick={handleDelete}
+            disabled={
+              workflowLoading || deleting
+            }
+          >
+            {deleting
+              ? "Deleting..."
+              : "Delete Ticket"}
+          </button>
 
-  <button
-    className="edit-ticket-button"
-    onClick={() => setIsEditing(!isEditing)}
-    disabled={workflowLoading || deleting}
-  >
-    {isEditing ? "Cancel Edit" : "Edit Ticket"}
-  </button>
+          <button
+            className="edit-ticket-button"
+            onClick={() =>
+              setIsEditing(!isEditing)
+            }
+            disabled={
+              workflowLoading || deleting
+            }
+          >
+            {isEditing
+              ? "Cancel Edit"
+              : "Edit Ticket"}
+          </button>
 
-</div>
+        </div>
 
       </div>
 
@@ -278,8 +361,8 @@ function TicketDetails({
 
       {!isEditing ? (
 
-<div>
-  <div className="ticket-details-grid">
+        <>
+          <div className="ticket-details-grid">
 
             <div className="details-card main-details">
 
@@ -351,7 +434,8 @@ function TicketDetails({
                   <span>Assigned To</span>
 
                   <strong>
-                    {ticket.assignedTo || "Unassigned"}
+                    {ticket.assignedTo ||
+                      "Unassigned"}
                   </strong>
                 </div>
 
@@ -361,71 +445,127 @@ function TicketDetails({
 
           </div>
 
-  <div className="activity-card">
+          <div className="activity-card">
 
-  <div className="details-card-header">
-    <div>
-      <h3>Activity</h3>
-    </div>
+            <div className="details-card-header">
+              <div>
+                <h3>Activity</h3>
+              </div>
 
-    <span>
-      Ticket history
-    </span>
-  </div>
-
-  <div className="activity-list">
-
-    {activityLoading ? (
-      <div className="activity-loading">
-        Loading activity...
-      </div>
-    ) : activities.length === 0 ? (
-      <div className="activity-empty">
-        No activity recorded yet.
-      </div>
-    ) : (
-      activities.map((activity) => (
-        <div
-          className="activity-item"
-          key={activity._id}
-        >
-
-          <div className="activity-marker">
-            <span></span>
-          </div>
-
-          <div className="activity-content">
-
-            <div className="activity-top">
-              <strong>
-                {activity.action}
-              </strong>
-
-              <time>
-                {new Date(
-                  activity.createdAt
-                ).toLocaleString()}
-              </time>
+              <span>
+                Ticket history
+              </span>
             </div>
 
-            <p>
-              {activity.description}
-            </p>
+            <div className="activity-list">
 
-            <small>
-              By {activity.performedBy}
-            </small>
+              {activityLoading ? (
+                <div className="activity-loading">
+                  Loading activity...
+                </div>
+              ) : activities.length === 0 ? (
+                <div className="activity-empty">
+                  No activity recorded yet.
+                </div>
+              ) : (
+                activities.map((activity) => (
+                  <div
+                    className={`activity-item ${
+                      activity.action ===
+                      "Internal Note"
+                        ? "internal-note-item"
+                        : ""
+                    }`}
+                    key={activity._id}
+                  >
+
+                    <div className="activity-marker">
+                      <span></span>
+                    </div>
+
+                    <div className="activity-content">
+
+                      <div className="activity-top">
+
+                        <strong>
+                          {activity.action}
+                        </strong>
+
+                        <time>
+                          {new Date(
+                            activity.createdAt
+                          ).toLocaleString()}
+                        </time>
+
+                      </div>
+
+                      <p>
+                        {activity.description}
+                      </p>
+
+                      <small>
+                        By {activity.performedBy}
+                      </small>
+
+                    </div>
+
+                  </div>
+                ))
+              )}
+
+            </div>
+
+            <form
+              className="internal-note-form"
+              onSubmit={handleAddNote}
+            >
+
+              <div className="internal-note-heading">
+                <div>
+                  <strong>
+                    Add Internal Note
+                  </strong>
+
+                  <span>
+                    Visible to IT staff
+                  </span>
+                </div>
+              </div>
+
+              <textarea
+                value={note}
+                onChange={(event) =>
+                  setNote(event.target.value)
+                }
+                placeholder="Add troubleshooting details, investigation notes, or follow-up information..."
+                maxLength={1000}
+                rows="4"
+              />
+
+              <div className="internal-note-footer">
+
+                <span>
+                  {note.length} / 1000
+                </span>
+
+                <button
+                  type="submit"
+                  className="add-note-button"
+                  disabled={
+                    noteSaving || !note.trim()
+                  }
+                >
+                  {noteSaving
+                    ? "Adding..."
+                    : "Add Note"}
+                </button>
+
+              </div>
+
+            </form>
 
           </div>
-
-        </div>
-      ))
-    )}
-
-  </div>
-
-  </div>
-</div>
+        </>
 
       ) : (
 
@@ -436,7 +576,9 @@ function TicketDetails({
 
           <div className="details-card-header">
             <h3>Edit Ticket</h3>
-            <span>Update ticket information</span>
+            <span>
+              Update ticket information
+            </span>
           </div>
 
           <div className="edit-form">
@@ -461,6 +603,7 @@ function TicketDetails({
                 value={formData.description}
                 onChange={handleChange}
                 rows="6"
+                maxLength={1000}
                 required
               />
             </div>
@@ -592,7 +735,9 @@ function TicketDetails({
             <button
               type="button"
               className="cancel-button"
-              onClick={() => setIsEditing(false)}
+              onClick={() =>
+                setIsEditing(false)
+              }
             >
               Cancel
             </button>
@@ -602,7 +747,9 @@ function TicketDetails({
               className="submit-button"
               disabled={saving}
             >
-              {saving ? "Saving..." : "Save Changes"}
+              {saving
+                ? "Saving..."
+                : "Save Changes"}
             </button>
 
           </div>

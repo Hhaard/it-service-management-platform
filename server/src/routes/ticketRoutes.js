@@ -55,6 +55,41 @@ router.get("/:id/activity", async (req, res) => {
   }
 });
 
+// Add an internal note to a ticket
+router.post("/:id/activity", async (req, res) => {
+  try {
+    const { description, performedBy } = req.body;
+
+    if (!description || !description.trim()) {
+      return res.status(400).json({
+        message: "Note cannot be empty",
+      });
+    }
+
+    const ticket = await Ticket.findById(req.params.id);
+
+    if (!ticket) {
+      return res.status(404).json({
+        message: "Ticket not found",
+      });
+    }
+
+    const activity = await TicketActivity.create({
+      ticket: ticket._id,
+      action: "Internal Note",
+      description: description.trim(),
+      performedBy: performedBy?.trim() || "Haard Patel",
+    });
+
+    res.status(201).json(activity);
+  } catch (error) {
+    res.status(400).json({
+      message: "Failed to add internal note",
+      error: error.message,
+    });
+  }
+});
+
 // Get one ticket
 router.get("/:id", async (req, res) => {
   try {

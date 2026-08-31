@@ -17,6 +17,7 @@ const ticketActivitySchema = new mongoose.Schema(
         "Status Changed",
         "Priority Changed",
         "Category Changed",
+        "Internal Note",
       ],
       required: true,
     },
