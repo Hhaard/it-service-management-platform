@@ -526,9 +526,10 @@ function TicketDetails({
                     Add Internal Note
                   </strong>
 
-                  <span>
-                    Visible to IT staff
-                  </span>
+                  <small>
+
+                       (Visible to IT staff)
+                  </small>
                 </div>
               </div>
 

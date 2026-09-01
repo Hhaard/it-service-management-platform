@@ -107,9 +107,66 @@ function App() {
   ).length;
 
   const resolvedTickets = tickets.filter(
-    (ticket) =>
-      ticket.status === "Resolved" || ticket.status === "Closed"
+    (ticket) => ticket.status === "Resolved"
   ).length;
+  
+  const closedTickets = tickets.filter(
+    (ticket) => ticket.status === "Closed"
+  ).length;
+  
+  const completedTickets =
+    resolvedTickets + closedTickets;
+  
+  const resolutionRate =
+    totalTickets === 0
+      ? 0
+      : Math.round(
+          (completedTickets / totalTickets) * 100
+        );
+
+  const criticalTickets = tickets.filter(
+    (ticket) => ticket.priority === "Critical"
+  ).length;
+
+  const categoryCounts = {
+    Hardware: tickets.filter(
+      (ticket) => ticket.category === "Hardware"
+    ).length,
+  
+    Software: tickets.filter(
+      (ticket) => ticket.category === "Software"
+    ).length,
+  
+    Network: tickets.filter(
+      (ticket) => ticket.category === "Network"
+    ).length,
+  
+    Access: tickets.filter(
+      (ticket) => ticket.category === "Access"
+    ).length,
+  
+    Other: tickets.filter(
+      (ticket) => ticket.category === "Other"
+    ).length,
+  };
+
+  const priorityCounts = {
+    Critical: tickets.filter(
+      (ticket) => ticket.priority === "Critical"
+    ).length,
+  
+    High: tickets.filter(
+      (ticket) => ticket.priority === "High"
+    ).length,
+  
+    Medium: tickets.filter(
+      (ticket) => ticket.priority === "Medium"
+    ).length,
+  
+    Low: tickets.filter(
+      (ticket) => ticket.priority === "Low"
+    ).length,
+  };
 
   return (
     <div className="app">
@@ -376,38 +433,52 @@ function App() {
 
           {/* Statistics */}
           <section className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-icon blue">▦</div>
-              <div>
-                <span>Total Tickets</span>
-                <strong>{totalTickets}</strong>
-              </div>
-            </div>
 
-            <div className="stat-card">
-              <div className="stat-icon orange">!</div>
-              <div>
-                <span>Open Tickets</span>
-                <strong>{openTickets}</strong>
-              </div>
-            </div>
+<div className="stat-card">
+  <div className="stat-icon blue">
+    ◆
+  </div>
 
-            <div className="stat-card">
-              <div className="stat-icon purple">◷</div>
-              <div>
-                <span>In Progress</span>
-                <strong>{inProgressTickets}</strong>
-              </div>
-            </div>
+  <div>
+    <span>Total Tickets</span>
+    <strong>{totalTickets}</strong>
+  </div>
+</div>
 
-            <div className="stat-card">
-              <div className="stat-icon green">✓</div>
-              <div>
-                <span>Resolved</span>
-                <strong>{resolvedTickets}</strong>
-              </div>
-            </div>
-          </section>
+<div className="stat-card">
+  <div className="stat-icon orange">
+    !
+  </div>
+
+  <div>
+    <span>Open Tickets</span>
+    <strong>{openTickets}</strong>
+  </div>
+</div>
+
+<div className="stat-card">
+  <div className="stat-icon red">
+    !
+  </div>
+
+  <div>
+    <span>Critical Tickets</span>
+    <strong>{criticalTickets}</strong>
+  </div>
+</div>
+
+<div className="stat-card">
+  <div className="stat-icon green">
+    ✓
+  </div>
+
+  <div>
+    <span>Resolution Rate</span>
+    <strong>{resolutionRate}%</strong>
+  </div>
+</div>
+
+</section>
 
           {/* Tickets */}
           <section id="tickets" className="tickets-section">
@@ -511,6 +582,99 @@ function App() {
               </div>
             )}
           </section>
+          <section className="analytics-section">
+  <div className="section-header">
+    <div>
+      <h3>Ticket Overview</h3>
+      <p>Current ticket distribution by status</p>
+    </div>
+  </div>
+
+  <div className="status-overview">
+
+    <div className="overview-item">
+      <div className="overview-label">
+        <span>Open</span>
+        <strong>{openTickets}</strong>
+      </div>
+
+      <div className="overview-bar">
+        <div
+          className="overview-fill open-fill"
+          style={{
+            width: `${
+              totalTickets === 0
+                ? 0
+                : (openTickets / totalTickets) * 100
+            }%`,
+          }}
+        ></div>
+      </div>
+    </div>
+
+    <div className="overview-item">
+      <div className="overview-label">
+        <span>In Progress</span>
+        <strong>{inProgressTickets}</strong>
+      </div>
+
+      <div className="overview-bar">
+        <div
+          className="overview-fill progress-fill"
+          style={{
+            width: `${
+              totalTickets === 0
+                ? 0
+                : (inProgressTickets / totalTickets) * 100
+            }%`,
+          }}
+        ></div>
+      </div>
+    </div>
+
+    <div className="overview-item">
+      <div className="overview-label">
+        <span>Resolved</span>
+        <strong>{resolvedTickets}</strong>
+      </div>
+
+      <div className="overview-bar">
+        <div
+          className="overview-fill resolved-fill"
+          style={{
+            width: `${
+              totalTickets === 0
+                ? 0
+                : (resolvedTickets / totalTickets) * 100
+            }%`,
+          }}
+        ></div>
+      </div>
+    </div>
+
+    <div className="overview-item">
+      <div className="overview-label">
+        <span>Closed</span>
+        <strong>{closedTickets}</strong>
+      </div>
+
+      <div className="overview-bar">
+        <div
+          className="overview-fill closed-fill"
+          style={{
+            width: `${
+              totalTickets === 0
+                ? 0
+                : (closedTickets / totalTickets) * 100
+            }%`,
+          }}
+        ></div>
+      </div>
+    </div>
+
+  </div>
+
+</section>
         </section>
                 )}
                 {currentPage === "tickets" && (
