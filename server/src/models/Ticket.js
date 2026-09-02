@@ -43,6 +43,11 @@ const ticketSchema = new mongoose.Schema(
       default: "Unassigned",
       trim: true,
     },
+    assignedToUser: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   {
     timestamps: true,

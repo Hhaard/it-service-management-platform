@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import Tickets from "./components/Tickets";
 import TicketDetails from "./components/TicketDetails";
+import Users from "./components/Users";
+
 import "./App.css";
 
 const API_URL = "http://localhost:5000/api";
@@ -201,10 +203,15 @@ function App() {
   Tickets
 </button>
 
-          <a href="#users" className="nav-item">
-            <span>♙</span>
-            Users
-          </a>
+<button
+  className={`nav-item ${
+    currentPage === "users" ? "active" : ""
+  }`}
+  onClick={() => setCurrentPage("users")}
+>
+  <span>◎</span>
+  Users
+</button>
 
           <a href="#reports" className="nav-item">
             <span>▥</span>
@@ -691,6 +698,10 @@ function App() {
                   }}
                 />
                 )}
+
+                    {currentPage === "users" && (
+                      <Users />
+                    )}
                 {currentPage === "ticket-details" && selectedTicket && (
                   <TicketDetails
                     ticket={selectedTicket}
