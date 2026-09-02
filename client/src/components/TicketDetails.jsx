@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getSlaStatus } from "../utils/sla";
 
 function TicketDetails({
   ticket,
@@ -236,6 +237,8 @@ function TicketDetails({
     }
   };
 
+  const sla = getSlaStatus(ticket);
+
   return (
     <section className="ticket-details-page">
 
@@ -390,17 +393,27 @@ function TicketDetails({
 
               <div className="property-list">
 
-                <div className="property">
-                  <span>Status</span>
+              <div className="property">
+                <span>SLA</span>
 
-                  <strong
-                    className={`status ${ticket.status
-                      .toLowerCase()
-                      .replace(" ", "-")}`}
-                  >
-                    {ticket.status}
-                  </strong>
-                </div>
+                <strong
+                  className={`sla-badge ${sla.status
+                    .toLowerCase()
+                    .replace(" ", "-")}`}
+                >
+                  {sla.label}
+                </strong>
+              </div>
+
+              <div className="property">
+  <span>Resolution Target</span>
+
+  <strong>
+    {sla.resolutionDeadline
+      ? sla.resolutionDeadline.toLocaleString()
+      : "Unavailable"}
+  </strong>
+</div>
 
                 <div className="property">
                   <span>Priority</span>

@@ -3433,4 +3433,44 @@ background: #ffffff;
     grid-template-columns: 1fr;
   }
 }
+
+/* =====================================================
+   SLA BADGES
+   ===================================================== */
+
+   .sla-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 92px;
+    padding: 6px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  
+  .sla-badge.on-track {
+    background: #ecfdf5;
+    color: #047857;
+  }
+  
+  .sla-badge.at-risk {
+    background: #fffbeb;
+    color: #b45309;
+  }
+  
+  .sla-badge.breached {
+    background: #fef2f2;
+    color: #b91c1c;
+  }
+  
+  .sla-badge.completed {
+    background: #eff6ff;
+    color: #2563eb;
+  }
+  
+  .sla-badge.unknown {
+    background: #f1f5f9;
+    color: #64748b;
+  }
 }

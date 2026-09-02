@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { getSlaStatus } from "../utils/sla";
 
 function Tickets({
     tickets,
@@ -172,6 +173,7 @@ function Tickets({
                   <th>Requester</th>
                   <th>Assigned To</th>
                   <th>Created</th>
+                  <th>SLA</th>
                 </tr>
               </thead>
 
@@ -182,52 +184,69 @@ function Tickets({
                   className="ticket-row"
                   onClick={() => onSelectTicket(ticket)}
                 >
-                    <td>
-                      <div className="ticket-title">
-                        <strong>{ticket.title}</strong>
-
-                        <span>
-                          #{ticket._id
-                            .slice(-6)
-                            .toUpperCase()}
+                  <td>
+                    <div className="ticket-title">
+                      <strong>{ticket.title}</strong>
+                
+                      <span>
+                        #{ticket._id
+                          .slice(-6)
+                          .toUpperCase()}
+                      </span>
+                    </div>
+                  </td>
+                
+                  <td>{ticket.category}</td>
+                
+                  <td>
+                    <span
+                      className={`priority ${ticket.priority
+                        .toLowerCase()
+                        .replace(" ", "-")}`}
+                    >
+                      {ticket.priority}
+                    </span>
+                  </td>
+                
+                  <td>
+                    <span
+                      className={`status ${ticket.status
+                        .toLowerCase()
+                        .replace(" ", "-")}`}
+                    >
+                      {ticket.status}
+                    </span>
+                  </td>
+                
+                  {/* SLA */}
+                  <td>
+                    {(() => {
+                      const sla = getSlaStatus(ticket);
+                
+                      return (
+                        <span
+                          className={`sla-badge ${sla.status
+                            .toLowerCase()
+                            .replace(" ", "-")}`}
+                        >
+                          {sla.label}
                         </span>
-                      </div>
-                    </td>
-
-                    <td>{ticket.category}</td>
-
-                    <td>
-                      <span
-                        className={`priority ${ticket.priority
-                          .toLowerCase()
-                          .replace(" ", "-")}`}
-                      >
-                        {ticket.priority}
-                      </span>
-                    </td>
-
-                    <td>
-                      <span
-                        className={`status ${ticket.status
-                          .toLowerCase()
-                          .replace(" ", "-")}`}
-                      >
-                        {ticket.status}
-                      </span>
-                    </td>
-
-                    <td>{ticket.requester}</td>
-
-                    <td>
-                      {ticket.assignedTo || "Unassigned"}
-                    </td>
-
-                    <td>
-                      {new Date(
-                        ticket.createdAt
-                      ).toLocaleDateString()}
-                    </td>
-                  </tr>
+                      );
+                    })()}
+                  </td>
+                
+                  <td>{ticket.requester}</td>
+                
+                  <td>
+                    {ticket.assignedTo || "Unassigned"}
+                  </td>
+                
+                  <td>
+                    {new Date(
+                      ticket.createdAt
+                    ).toLocaleDateString()}
+                  </td>
+                </tr>
                 ))}
               </tbody>
             </table>
