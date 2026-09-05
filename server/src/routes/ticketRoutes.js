@@ -116,6 +116,9 @@ router.put("/:id", async (req, res) => {
   try {
     const existingTicket = await Ticket.findById(
       req.params.id
+    ).populate(
+      "assignedToUser",
+      "name email role department"
     );
 
     if (!existingTicket) {
@@ -154,13 +157,23 @@ router.put("/:id", async (req, res) => {
     }
 
     if (
-      req.body.assignedTo &&
-      req.body.assignedTo !== existingTicket.assignedTo
+      req.body.assignedToUser &&
+      String(req.body.assignedToUser) !==
+        String(existingTicket.assignedToUser?._id)
     ) {
-      changes.push(
-        `Assigned to ${req.body.assignedTo}.`
+      const assignedUser = await User.findById(
+        req.body.assignedToUser
       );
+    
+      if (assignedUser) {
+        changes.push(
+          `Ticket assigned to ${assignedUser.name} (${assignedUser.department}).`
+        );
+      }
     }
+    changes.push(
+      `Assigned to ${req.body.assignedTo}.`
+    );
 
     if (
       req.body.title &&
@@ -190,7 +203,11 @@ router.put("/:id", async (req, res) => {
         new: true,
         runValidators: true,
       }
+    ).populate(
+      "assignedToUser",
+      "name email role department"
     );
+    
 
     if (changes.length > 0) {
       await TicketActivity.create({

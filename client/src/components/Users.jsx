@@ -11,6 +11,14 @@ function Users() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
+  const [showEditForm, setShowEditForm] = useState(false);
+const [editingUser, setEditingUser] = useState(null);
+const [editing, setEditing] = useState(false);
+const [editError, setEditError] = useState("");
+const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+const [userToDeactivate, setUserToDeactivate] = useState(null);
+const [deactivating, setDeactivating] = useState(false);
+const [deactivationReason, setDeactivationReason] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -90,6 +98,131 @@ function Users() {
       setCreateError(err.message);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleEditUser = async (event) => {
+    event.preventDefault();
+  
+    if (!editingUser) return;
+  
+    try {
+      setEditing(true);
+      setEditError("");
+  
+      const response = await fetch(
+        `${API_URL}/users/${editingUser._id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: editingUser.name,
+            email: editingUser.email,
+            role: editingUser.role,
+            department: editingUser.department,
+          }),
+        }
+      );
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to update user"
+        );
+      }
+  
+      setUsers((previous) =>
+        previous.map((user) =>
+          user._id === editingUser._id
+            ? data.user
+            : user
+        )
+      );
+  
+      setShowEditForm(false);
+      setEditingUser(null);
+    } catch (err) {
+      setEditError(err.message);
+    } finally {
+      setEditing(false);
+    }
+  };
+
+  const handleDeactivateUser = async () => {
+  if (!userToDeactivate) return;
+
+  try {
+    setDeactivating(true);
+    setError("");
+
+    const response = await fetch(
+      `${API_URL}/users/${userToDeactivate._id}/deactivate`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason: deactivationReason,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Failed to deactivate user"
+      );
+    }
+
+    setUsers((previous) =>
+      previous.map((user) =>
+        user._id === userToDeactivate._id
+          ? data.user
+          : user
+      )
+    );
+
+    setShowDeactivateConfirm(false);
+    setUserToDeactivate(null);
+    setDeactivationReason("");
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setDeactivating(false);
+  }
+};
+  
+  const handleReactivateUser = async (userId) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/users/${userId}/reactivate`,
+        {
+          method: "PATCH",
+        }
+      );
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to reactivate user"
+        );
+      }
+  
+      setUsers((previous) =>
+        previous.map((user) =>
+          user._id === userId
+            ? data.user
+            : user
+        )
+      );
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -187,6 +320,7 @@ function Users() {
                   <th>Role</th>
                   <th>Department</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
 
@@ -246,6 +380,44 @@ function Users() {
                           : "Inactive"}
                       </span>
                     </td>
+
+                    <td>
+  <div className="user-actions">
+
+    <button
+      className="edit-user-button"
+      onClick={() => {
+        setEditingUser({ ...user });
+        setEditError("");
+        setShowEditForm(true);
+      }}
+    >
+      Edit
+    </button>
+
+    {user.active ? (
+  <button
+    className="deactivate-user-button"
+    onClick={() => {
+      setUserToDeactivate(user);
+      setShowDeactivateConfirm(true);
+    }}
+  >
+    Deactivate
+  </button>
+) : (
+      <button
+        className="reactivate-user-button"
+        onClick={() =>
+          handleReactivateUser(user._id)
+        }
+      >
+        Reactivate
+      </button>
+    )}
+
+  </div>
+</td>
 
                   </tr>
                 ))}
@@ -440,6 +612,294 @@ function Users() {
         </div>
       )}
 
+{showEditForm && editingUser && (
+  <div className="modal-overlay">
+
+    <div className="modal user-modal">
+
+      <div className="modal-header">
+
+        <div>
+          <p className="eyebrow">
+            ADMINISTRATION
+          </p>
+
+          <h3>Edit User</h3>
+        </div>
+
+        <button
+          className="close-button"
+          onClick={() => {
+            setShowEditForm(false);
+            setEditingUser(null);
+          }}
+        >
+          ×
+        </button>
+
+      </div>
+
+      <form onSubmit={handleEditUser}>
+
+        <div className="form-group">
+
+          <label htmlFor="edit-user-name">
+            FULL NAME
+          </label>
+
+          <small>
+            Update the user's full name.
+          </small>
+
+          <input
+            id="edit-user-name"
+            name="name"
+            type="text"
+            value={editingUser.name}
+            onChange={(event) =>
+              setEditingUser({
+                ...editingUser,
+                name: event.target.value,
+              })
+            }
+            required
+          />
+
+        </div>
+
+        <div className="form-group">
+
+          <label htmlFor="edit-user-email">
+            EMAIL ADDRESS
+          </label>
+
+          <small>
+            Update the user's email address.
+          </small>
+
+          <input
+            id="edit-user-email"
+            name="email"
+            type="email"
+            value={editingUser.email}
+            onChange={(event) =>
+              setEditingUser({
+                ...editingUser,
+                email: event.target.value,
+              })
+            }
+            required
+          />
+
+        </div>
+
+        <div className="form-row">
+
+          <div className="form-group">
+
+            <label htmlFor="edit-user-role">
+              ROLE
+            </label>
+
+            <select
+              id="edit-user-role"
+              value={editingUser.role}
+              onChange={(event) =>
+                setEditingUser({
+                  ...editingUser,
+                  role: event.target.value,
+                })
+              }
+            >
+              <option value="Administrator">
+                Administrator
+              </option>
+
+              <option value="IT Support Agent">
+                IT Support Agent
+              </option>
+
+              <option value="Manager">
+                Manager
+              </option>
+
+              <option value="Requester">
+                Requester
+              </option>
+            </select>
+
+          </div>
+
+          <div className="form-group">
+
+            <label htmlFor="edit-user-department">
+              DEPARTMENT
+            </label>
+
+            <select
+              id="edit-user-department"
+              value={editingUser.department}
+              onChange={(event) =>
+                setEditingUser({
+                  ...editingUser,
+                  department: event.target.value,
+                })
+              }
+            >
+              <option value="IT">
+                IT
+              </option>
+
+              <option value="Management">
+                Management
+              </option>
+
+              <option value="HR">
+                HR
+              </option>
+
+              <option value="Finance">
+                Finance
+              </option>
+
+              <option value="Operations">
+                Operations
+              </option>
+
+              <option value="Other">
+                Other
+              </option>
+            </select>
+
+          </div>
+
+        </div>
+
+        {editError && (
+          <div className="form-error">
+            {editError}
+          </div>
+        )}
+
+        <div className="form-actions">
+
+          <button
+            type="button"
+            className="cancel-button"
+            onClick={() => {
+              setShowEditForm(false);
+              setEditingUser(null);
+            }}
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            className="submit-button"
+            disabled={editing}
+          >
+            {editing
+              ? "Saving..."
+              : "Save Changes"}
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+)}
+
+{showDeactivateConfirm && userToDeactivate && (
+  <div className="modal-overlay">
+
+    <div className="modal deactivate-modal">
+
+      <div className="deactivate-modal-icon">
+        !
+      </div>
+
+      <div className="deactivate-modal-content">
+
+        <p className="eyebrow">
+          ACCOUNT MANAGEMENT
+        </p>
+
+        <h3>Deactivate User?</h3>
+
+        <p>
+          Are you sure you want to deactivate{" "}
+          <strong>{userToDeactivate.name}</strong>?
+        </p>
+
+        <p className="deactivate-warning">
+          This user will no longer be available for
+          active user assignments.
+        </p>
+
+        <div className="deactivation-reason">
+
+  <label htmlFor="deactivation-reason">
+    REASON FOR DEACTIVATION
+  </label>
+
+  <textarea
+  required
+    id="deactivation-reason"
+    placeholder="e.g. Employee left the organization"
+    value={deactivationReason}
+    onChange={(event) =>
+      setDeactivationReason(event.target.value)
+    }
+    rows="3"
+  />
+
+  <small>
+    This reason will be saved in the user activity history.
+  </small>
+
+</div>
+        
+
+      </div>
+
+      <div className="form-actions">
+
+        <button
+          type="button"
+          className="cancel-button"
+          onClick={() => {
+            setShowDeactivateConfirm(false);
+            setUserToDeactivate(null);
+          }}
+          disabled={deactivating}
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          className="confirm-deactivate-button"
+          onClick={handleDeactivateUser}
+          disabled={
+            deactivating ||
+            !deactivationReason.trim()
+          }
+        >
+          {deactivating
+            ? "Deactivating..."
+            : "Yes, Deactivate"}
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+)}
     </section>
   );
 }

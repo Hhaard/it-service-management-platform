@@ -16,6 +16,8 @@ function TicketDetails({
     category: ticket.category,
     requester: ticket.requester,
     assignedTo: ticket.assignedTo || "Unassigned",
+    assignedToUser:
+        ticket.assignedToUser?._id || "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -29,6 +31,33 @@ function TicketDetails({
 
   const [note, setNote] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setUsersLoading(true);
+  
+        const response = await fetch(
+          "http://localhost:5000/api/users"
+        );
+  
+        if (!response.ok) {
+          throw new Error("Failed to fetch users");
+        }
+  
+        const data = await response.json();
+        setUsers(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+  
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     const fetchActivities = async () => {
@@ -95,7 +124,14 @@ function TicketDetails({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            ...formData,
+            assignedTo:
+              users.find(
+                (user) =>
+                  user._id === formData.assignedToUser
+              )?.name || "Unassigned",
+          }),
         }
       );
 
@@ -443,14 +479,22 @@ function TicketDetails({
                   </strong>
                 </div>
 
-                <div className="property">
-                  <span>Assigned To</span>
+                <strong className="assigned-user-display">
+  {ticket.assignedToUser ? (
+    <>
+      <span>
+        {ticket.assignedToUser.name}
+      </span>
 
-                  <strong>
-                    {ticket.assignedTo ||
-                      "Unassigned"}
-                  </strong>
-                </div>
+      <small>
+        {ticket.assignedToUser.role} ·{" "}
+        {ticket.assignedToUser.department}
+      </small>
+    </>
+  ) : (
+    ticket.assignedTo || "Unassigned"
+  )}
+</strong>
 
               </div>
 
@@ -711,38 +755,42 @@ function TicketDetails({
               </div>
 
               <div className="form-group">
-                <label>Assigned To</label>
 
-                <select
-                  name="assignedTo"
-                  value={formData.assignedTo}
-                  onChange={handleChange}
-                >
-                  <option value="Unassigned">
-                    Unassigned
-                  </option>
 
-                  <option value="IT Support">
-                    IT Support
-                  </option>
+                <div className="form-group">
+  <label>Assigned To</label>
 
-                  <option value="Network Team">
-                    Network Team
-                  </option>
+  <select
+    name="assignedToUser"
+    value={formData.assignedToUser}
+    onChange={handleChange}
+  >
+    <option value="">
+      {usersLoading
+        ? "Loading users..."
+        : "Unassigned"}
+    </option>
 
-                  <option value="Systems Team">
-                    Systems Team
-                  </option>
+    {!usersLoading &&
+      users.map((user) => (
+        <option
+          key={user._id}
+          value={user._id}
+        >
+          {user.name} — {user.role} · {user.department}
+        </option>
+      ))}
+  </select>
 
-                  <option value="Security Team">
-                    Security Team
-                  </option>
-                </select>
-              </div>
+  <small>
+    Select the person responsible for this ticket.
+  </small>
+</div>
 
             </div>
 
           </div>
+        </div>
 
           <div className="edit-actions">
 
