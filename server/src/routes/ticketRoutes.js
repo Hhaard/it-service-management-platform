@@ -1,12 +1,13 @@
 const express = require("express");
 const Ticket = require("../models/Ticket");
 const TicketActivity = require("../models/TicketActivity");
+
 const User = require("../models/User");
 
 const router = express.Router();
 
 // Create a new ticket
-router.post("/", async (req, res) => {
+router.post("/", protect, async (req, res) => {
   try {
     const ticket = await Ticket.create(req.body);
 
@@ -27,7 +28,7 @@ router.post("/", async (req, res) => {
 });
 
 // Get all tickets
-router.get("/", async (req, res) => {
+router.get("/",protect,  async (req, res) => {
   try {
     const tickets = await Ticket.find().sort({ createdAt: -1 });
 
@@ -41,7 +42,7 @@ router.get("/", async (req, res) => {
 });
 
 // Get ticket activity
-router.get("/:id/activity", async (req, res) => {
+router.get("/:id/activity",protect,  async (req, res) => {
   try {
     const activities = await TicketActivity.find({
       ticket: req.params.id,
@@ -57,7 +58,7 @@ router.get("/:id/activity", async (req, res) => {
 });
 
 // Add an internal note to a ticket
-router.post("/:id/activity", async (req, res) => {
+router.post("/:id/activity",protect,  async (req, res) => {
   try {
     const { description, performedBy } = req.body;
 
@@ -92,7 +93,7 @@ router.post("/:id/activity", async (req, res) => {
 });
 
 // Get one ticket
-router.get("/:id", async (req, res) => {
+router.get("/:id", protect, async (req, res) => {
   try {
     const ticket = await Ticket.findById(req.params.id);
 
@@ -112,7 +113,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Update a ticket
-router.put("/:id", async (req, res) => {
+router.put("/:id", protect,  async (req, res) => {
   try {
     const existingTicket = await Ticket.findById(
       req.params.id
@@ -241,7 +242,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Delete a ticket
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", protect,  async (req, res) => {
   try {
     const ticket = await Ticket.findByIdAndDelete(req.params.id);
 

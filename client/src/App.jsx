@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Login from "./Login";
 import Tickets from "./components/Tickets";
 import TicketDetails from "./components/TicketDetails";
 import Users from "./components/Users";
@@ -8,6 +9,22 @@ import "./App.css";
 const API_URL = "http://localhost:5000/api";
 
 function App() {
+
+  const [currentUser, setCurrentUser] = useState(() => {
+    const savedUser = localStorage.getItem("user");
+
+    return savedUser
+      ? JSON.parse(savedUser)
+      : null;
+  });
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  
+    setCurrentUser(null);
+  };
+
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -95,8 +112,10 @@ function App() {
   };
 
   useEffect(() => {
-    fetchTickets();
-  }, []);
+    if (currentUser) {
+      fetchTickets();
+    }
+  }, [currentUser]);
 
   const totalTickets = tickets.length;
 
@@ -170,71 +189,106 @@ function App() {
     ).length,
   };
 
+  if (!currentUser) {
+    return (
+      <Login
+      onLogin={(user) => {
+        setCurrentUser(user);
+      }}
+      />
+    );
+  }
+
   return (
     <div className="app">
+  
       {/* Sidebar */}
       <aside className="sidebar">
+  
         <div className="brand">
           <div className="brand-icon">IT</div>
+  
           <div>
             <h1>ITSM</h1>
             <span>Service Management</span>
           </div>
         </div>
-
+  
         <nav className="navigation">
-        <button
-  className={`nav-item ${
-    currentPage === "dashboard" ? "active" : ""
-  }`}
-  onClick={() => setCurrentPage("dashboard")}
->
-  <span>▦</span>
-  Dashboard
-</button>
-
-<button
-  className={`nav-item ${
-    currentPage === "tickets" ? "active" : ""
-  }`}
-  onClick={() => setCurrentPage("tickets")}
->
-  <span>▤</span>
-  Tickets
-</button>
-
-<button
-  className={`nav-item ${
-    currentPage === "users" ? "active" : ""
-  }`}
-  onClick={() => setCurrentPage("users")}
->
-  <span>◎</span>
-  Users
-</button>
-
+  
+          <button
+            className={`nav-item ${
+              currentPage === "dashboard" ? "active" : ""
+            }`}
+            onClick={() => setCurrentPage("dashboard")}
+          >
+            <span>▦</span>
+            Dashboard
+          </button>
+  
+          <button
+            className={`nav-item ${
+              currentPage === "tickets" ? "active" : ""
+            }`}
+            onClick={() => setCurrentPage("tickets")}
+          >
+            <span>▤</span>
+            Tickets
+          </button>
+  
+          <button
+            className={`nav-item ${
+              currentPage === "users" ? "active" : ""
+            }`}
+            onClick={() => setCurrentPage("users")}
+          >
+            <span>◎</span>
+            Users
+          </button>
+  
           <a href="#reports" className="nav-item">
             <span>▥</span>
             Reports
           </a>
+  
         </nav>
-
+  
         <div className="sidebar-bottom">
+  
           <div className="system-status">
             <span className="status-dot"></span>
             API Connected
           </div>
-
+  
           <div className="user-card">
-            <div className="avatar">HP</div>
-            <div>
-              <strong>Haard Patel</strong>
-              <span>Administrator</span>
+  
+            <div className="avatar">
+              {currentUser.name
+                .split(" ")
+                .map((name) => name[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase()}
             </div>
+  
+            <div>
+              <strong>{currentUser.name}</strong>
+              <span>{currentUser.role}</span>
+            </div>
+  
           </div>
+  
+          <button
+            className="logout-button"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
+  
         </div>
+  
       </aside>
-
+  
       {/* Main Content */}
       <main className="main-content">
         <header className="topbar">
@@ -722,10 +776,9 @@ function App() {
                     }}
                   />
                 )}
-                
-      </main>
-    </div>
-  );
-}
+        </main>
+      </div>
+)}
+
 
 export default App;
