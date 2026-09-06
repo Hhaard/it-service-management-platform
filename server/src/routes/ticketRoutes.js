@@ -1,5 +1,6 @@
 const express = require("express");
 const Ticket = require("../models/Ticket");
+const protect = require("../middleware/authMiddleware");
 const TicketActivity = require("../models/TicketActivity");
 
 const User = require("../models/User");

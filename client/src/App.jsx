@@ -47,16 +47,42 @@ function App() {
     try {
       setLoading(true);
       setError("");
-
-      const response = await fetch(`${API_URL}/tickets`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch tickets");
+  
+      const token = localStorage.getItem("token");
+  
+      if (!token) {
+        setError("Authentication required");
+        return;
       }
-
+  
+      const response = await fetch(`${API_URL}/tickets`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setCurrentUser(null);
+        return;
+      }
+  
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+  
+        throw new Error(
+          data.message || "Failed to fetch tickets"
+        );
+      }
+  
       const data = await response.json();
+  
       setTickets(data);
     } catch (err) {
+      console.error("Fetch tickets error:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -83,6 +109,7 @@ function App() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify(formData),
       });

@@ -3,11 +3,12 @@ const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const UserActivity = require("../models/UserActivity");
+const protect = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
 // Get all active users
-router.get("/", async (req, res) => {
+router.get("/", protect, async (req, res) => {
   try {
     const users = await User.find().sort({ name: 1 });
 
@@ -21,7 +22,7 @@ router.get("/", async (req, res) => {
 });
 
 // Get one user
-router.get("/:id", async (req, res) => {
+router.get("/:id", protect, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
 
@@ -41,7 +42,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create a user
-router.post("/", async (req, res) => {
+router.post("/", protect, async (req, res) => {
   try {
     // Generate a temporary password automatically
     const temporaryPassword = `ITSM-${crypto
@@ -95,7 +96,7 @@ router.post("/", async (req, res) => {
 });
 
 // Update a user
-router.put("/:id", async (req, res) => {
+router.put("/:id", protect, async (req, res) => {
   try {
     const updates = {};
 
@@ -161,7 +162,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Deactivate a user
-router.patch("/:id/deactivate", async (req, res) => {
+router.patch("/:id/deactivate",protect, async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(
       req.params.id,
@@ -203,7 +204,7 @@ router.patch("/:id/deactivate", async (req, res) => {
 });
 
 // Reactivate a user
-router.patch("/:id/reactivate", async (req, res) => {
+router.patch("/:id/reactivate",protect, async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(
       req.params.id,
@@ -239,7 +240,7 @@ router.patch("/:id/reactivate", async (req, res) => {
   }
 });
 
-router.get("/:id/activity", async (req, res) => {
+router.get("/:id/activity", protect, async (req, res) => {
   try {
     const activities = await UserActivity.find({
       user: req.params.id,
