@@ -3870,4 +3870,79 @@ background: #ffffff;
   color: #94a3b8;
   font-size: 11px;
 }
+
+/* Temporary Password Modal */
+
+.temporary-password-modal {
+  max-width: 500px;
+}
+
+.temporary-user-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 16px;
+  margin: 18px 0;
+  border-radius: 10px;
+  background: #f5f7fa;
+}
+
+.temporary-user-summary strong {
+  font-size: 17px;
+}
+
+.temporary-user-summary span {
+  color: #667085;
+  font-size: 14px;
+}
+
+.temporary-password-section {
+  margin-top: 20px;
+}
+
+.temporary-password-section label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.temporary-password-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.temporary-password-box span {
+  font-family: monospace;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.copy-password-button {
+  border: none;
+  border-radius: 7px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.copy-password-button:hover {
+  opacity: 0.85;
+}
+
+.temporary-password-warning {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fff7e6;
+  font-size: 13px;
+  line-height: 1.5;
+}
 }

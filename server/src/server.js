@@ -7,6 +7,7 @@ const ticketRoutes = require("./routes/ticketRoutes");
 const userRoutes = require("./routes/usersRoutes");
 
 const app = express();
+const authRoutes = require("./routes/authRoutes");
 
 const PORT = process.env.PORT || 5000;
 
@@ -25,6 +26,7 @@ app.get("/api/health", (req, res) => {
 // Ticket routes
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/auth", authRoutes);
 
 // Start server
 const startServer = async () => {

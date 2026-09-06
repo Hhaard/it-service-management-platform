@@ -1,4 +1,6 @@
 const express = require("express");
+const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const UserActivity = require("../models/UserActivity");
 
@@ -41,16 +43,49 @@ router.get("/:id", async (req, res) => {
 // Create a user
 router.post("/", async (req, res) => {
   try {
-    const user = await User.create(req.body);
+    // Generate a temporary password automatically
+    const temporaryPassword = `ITSM-${crypto
+      .randomBytes(4)
+      .toString("hex")}`;
 
-await UserActivity.create({
-  user: user._id,
-  action: "Created",
-  description: `User account ${user.name} was created.`,
-  performedBy: "Haard Patel",
-});
+    // Hash the temporary password before saving it
+    const hashedPassword = await bcrypt.hash(
+      temporaryPassword,
+      12
+    );
 
-res.status(201).json(user);
+    // Create the user with the hashed password
+    const user = await User.create({
+      ...req.body,
+      password: hashedPassword,
+    });
+
+    // Log the account creation
+    await UserActivity.create({
+      user: user._id,
+      action: "Created",
+      description: `User account ${user.name} was created.`,
+      performedBy: "Haard Patel",
+    });
+
+    // Never send the password hash to the frontend
+    const userResponse = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+      active: user.active,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+
+    // Return the temporary password ONCE
+    res.status(201).json({
+      message: "User created successfully",
+      user: userResponse,
+      temporaryPassword,
+    });
   } catch (error) {
     res.status(400).json({
       message: "Failed to create user",

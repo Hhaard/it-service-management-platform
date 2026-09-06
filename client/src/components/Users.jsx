@@ -7,6 +7,16 @@ function Users() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showTemporaryPassword, setShowTemporaryPassword] =
+  useState(false);
+
+const [createdUser, setCreatedUser] = useState(null);
+
+const [temporaryPassword, setTemporaryPassword] =
+  useState("");
+
+const [passwordCopied, setPasswordCopied] =
+  useState(false);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -61,13 +71,11 @@ const [deactivationReason, setDeactivationReason] = useState("");
     }));
   };
 
-  const handleCreateUser = async (event) => {
-    event.preventDefault();
-
+  const handleCreateUser = async () => {
     try {
       setCreating(true);
       setCreateError("");
-
+  
       const response = await fetch(`${API_URL}/users`, {
         method: "POST",
         headers: {
@@ -75,31 +83,121 @@ const [deactivationReason, setDeactivationReason] = useState("");
         },
         body: JSON.stringify(formData),
       });
-
+  
       const data = await response.json();
-
+  
       if (!response.ok) {
         throw new Error(
           data.message || "Failed to create user"
         );
       }
-
-      setUsers((previous) => [...previous, data]);
-
+  
+      // Add the newly created user to the list
+      setUsers((previous) => [
+        data.user,
+        ...previous,
+      ]);
+  
+      // Store temporary password for the one-time display
+      setCreatedUser(data.user);
+      setTemporaryPassword(data.temporaryPassword);
+  
+      // Close Create User modal
+      setShowCreateForm(false);
+  
+      // Open temporary password modal
+      setShowTemporaryPassword(true);
+  
+      // Reset form
       setFormData({
         name: "",
         email: "",
         role: "Requester",
         department: "IT",
       });
-
-      setShowCreateForm(false);
-    } catch (err) {
-      setCreateError(err.message);
+    } catch (error) {
+      setCreateError(error.message);
     } finally {
       setCreating(false);
     }
   };
+
+  const handleCopyTemporaryPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        temporaryPassword
+      );
+  
+      setPasswordCopied(true);
+  
+      setTimeout(() => {
+        setPasswordCopied(false);
+      }, 2000);
+    } catch (error) {
+      console.error(
+        "Failed to copy password:",
+        error
+      );
+    }
+  };
+
+  const closeTemporaryPassword = () => {
+    setShowTemporaryPassword(false);
+    setCreatedUser(null);
+    setTemporaryPassword("");
+    setPasswordCopied(false);
+  };
+
+  {showTemporaryPassword && createdUser && (
+    <div className="modal-overlay">
+      <div className="modal temporary-password-modal">
+        <div className="modal-header">
+          <div>
+            <h2>User Created Successfully</h2>
+            <p>
+              Give the user their temporary login credentials.
+            </p>
+          </div>
+        </div>
+  
+        <div className="temporary-user-summary">
+          <strong>{createdUser.name}</strong>
+          <span>{createdUser.email}</span>
+        </div>
+  
+        <div className="temporary-password-section">
+          <label>Temporary Password</label>
+  
+          <div className="temporary-password-box">
+            <span>{temporaryPassword}</span>
+  
+            <button
+              type="button"
+              onClick={handleCopyTemporaryPassword}
+              className="copy-password-button"
+            >
+              {passwordCopied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+        </div>
+  
+        <div className="temporary-password-warning">
+          This temporary password is shown only once.
+          Share it securely with the user.
+        </div>
+  
+        <div className="modal-actions">
+          <button
+            type="button"
+            className="submit-button"
+            onClick={closeTemporaryPassword}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
 
   const handleEditUser = async (event) => {
     event.preventDefault();
