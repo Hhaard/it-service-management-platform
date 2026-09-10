@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 const API_URL = "http://localhost:5000/api";
 
-function Users() {
+function Users({ currentUser }) {
   const [users, setUsers] = useState([]);
 
   const [loading, setLoading] = useState(true);
@@ -28,6 +28,18 @@ function Users() {
   const [userToDeactivate, setUserToDeactivate] = useState(null);
   const [deactivating, setDeactivating] = useState(false);
   const [deactivationReason, setDeactivationReason] = useState("");
+
+  // --------------------------------------------------
+  // ROLE PERMISSIONS
+  // --------------------------------------------------
+
+  const isAdmin = currentUser?.role === "Administrator";
+  const isManager = currentUser?.role === "Manager";
+  const isAgent = currentUser?.role === "IT Support Agent";
+
+  const canCreateUser = isAdmin;
+  const canEditUser = isAdmin || isManager;
+  const canManageUserStatus = isAdmin;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -139,23 +151,18 @@ function Users() {
         );
       }
 
-      // Add new user to the top of the list
       setUsers((previous) => [
         data.user,
         ...previous,
       ]);
 
-      // Store temporary credentials
       setCreatedUser(data.user);
       setTemporaryPassword(data.temporaryPassword);
 
-      // Close Create User modal
       setShowCreateForm(false);
 
-      // Open Temporary Password modal
       setShowTemporaryPassword(true);
 
-      // Reset form
       setFormData({
         name: "",
         email: "",
@@ -426,15 +433,17 @@ function Users() {
               : "users"}
           </div>
 
-          <button
-            className="create-button"
-            onClick={() => {
-              setCreateError("");
-              setShowCreateForm(true);
-            }}
-          >
-            + Add User
-          </button>
+          {canCreateUser && (
+            <button
+              className="create-button"
+              onClick={() => {
+                setCreateError("");
+                setShowCreateForm(true);
+              }}
+            >
+              + Add User
+            </button>
+          )}
 
         </div>
 
@@ -474,15 +483,17 @@ function Users() {
               your service desk team.
             </p>
 
-            <button
-              className="create-button"
-              onClick={() => {
-                setCreateError("");
-                setShowCreateForm(true);
-              }}
-            >
-              + Add User
-            </button>
+            {canCreateUser && (
+              <button
+                className="create-button"
+                onClick={() => {
+                  setCreateError("");
+                  setShowCreateForm(true);
+                }}
+              >
+                + Add User
+              </button>
+            )}
 
           </div>
         )}
@@ -567,42 +578,45 @@ function Users() {
 
                       <div className="user-actions">
 
-                        <button
-                          className="edit-user-button"
-                          onClick={() => {
-                            setEditingUser({
-                              ...user,
-                            });
-                            setEditError("");
-                            setShowEditForm(true);
-                          }}
-                        >
-                          Edit
-                        </button>
-
-                        {user.active ? (
+                        {canEditUser && (
                           <button
-                            className="deactivate-user-button"
+                            className="edit-user-button"
                             onClick={() => {
-                              setUserToDeactivate(user);
-                              setDeactivationReason("");
-                              setShowDeactivateConfirm(true);
+                              setEditingUser({
+                                ...user,
+                              });
+                              setEditError("");
+                              setShowEditForm(true);
                             }}
                           >
-                            Deactivate
-                          </button>
-                        ) : (
-                          <button
-                            className="reactivate-user-button"
-                            onClick={() =>
-                              handleReactivateUser(
-                                user._id
-                              )
-                            }
-                          >
-                            Reactivate
+                            Edit
                           </button>
                         )}
+
+                        {canManageUserStatus &&
+                          (user.active ? (
+                            <button
+                              className="deactivate-user-button"
+                              onClick={() => {
+                                setUserToDeactivate(user);
+                                setDeactivationReason("");
+                                setShowDeactivateConfirm(true);
+                              }}
+                            >
+                              Deactivate
+                            </button>
+                          ) : (
+                            <button
+                              className="reactivate-user-button"
+                              onClick={() =>
+                                handleReactivateUser(
+                                  user._id
+                                )
+                              }
+                            >
+                              Reactivate
+                            </button>
+                          ))}
 
                       </div>
 

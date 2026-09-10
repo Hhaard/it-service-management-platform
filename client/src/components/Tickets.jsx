@@ -218,34 +218,32 @@ function Tickets({
                     </span>
                   </td>
                 
-                  {/* SLA */}
-                  <td>
-                    {(() => {
-                      const sla = getSlaStatus(ticket);
-                
-                      return (
-                        <span
-                          className={`sla-badge ${sla.status
-                            .toLowerCase()
-                            .replace(" ", "-")}`}
-                        >
-                          {sla.label}
-                        </span>
-                      );
-                    })()}
-                  </td>
-                
                   <td>{ticket.requester}</td>
-                
-                  <td>
-                    {ticket.assignedTo || "Unassigned"}
-                  </td>
-                
-                  <td>
-                    {new Date(
-                      ticket.createdAt
-                    ).toLocaleDateString()}
-                  </td>
+
+<td>
+  {ticket.assignedTo || "Unassigned"}
+</td>
+
+<td>
+  {new Date(ticket.createdAt).toLocaleDateString()}
+</td>
+
+{/* SLA */}
+<td>
+  {(() => {
+    const sla = getSlaStatus(ticket);
+
+    return (
+      <span
+        className={`sla-badge ${sla.status
+          .toLowerCase()
+          .replace(" ", "-")}`}
+      >
+        {sla.label}
+      </span>
+    );
+  })()}
+</td>
                 </tr>
                 ))}
               </tbody>
