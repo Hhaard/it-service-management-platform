@@ -2,6 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const protect = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -59,6 +60,7 @@ router.post("/login", async (req, res) => {
     res.status(200).json({
       message: "Login successful",
       token,
+      mustChangePassword: user.mustChangePassword,
       user: {
         id: user._id,
         name: user.name,
@@ -67,9 +69,70 @@ router.post("/login", async (req, res) => {
         department: user.department,
       },
     });
+
   } catch (error) {
     res.status(500).json({
       message: "Login failed",
+      error: error.message,
+    });
+  }
+});
+
+router.patch("/change-password", protect, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        message:
+          "Current password and new password are required",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        message:
+          "New password must be at least 6 characters",
+      });
+    }
+
+    const user = await User.findById(req.user.id).select(
+      "+password"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const passwordMatches = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+
+    if (!passwordMatches) {
+      return res.status(401).json({
+        message: "Current password is incorrect",
+      });
+    }
+
+    const newPasswordHash = await bcrypt.hash(
+      newPassword,
+      12
+    );
+
+    user.password = newPasswordHash;
+    user.mustChangePassword = false;
+
+    await user.save();
+
+    res.status(200).json({
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to change password",
       error: error.message,
     });
   }

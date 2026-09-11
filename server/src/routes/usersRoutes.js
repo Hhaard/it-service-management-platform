@@ -78,6 +78,7 @@ router.post(
     const user = await User.create({
       ...req.body,
       password: hashedPassword,
+      mustChangePassword: true,
     });
 
     // Log the account creation

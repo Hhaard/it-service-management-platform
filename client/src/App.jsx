@@ -3,6 +3,7 @@ import Login from "./Login";
 import Tickets from "./components/Tickets";
 import TicketDetails from "./components/TicketDetails";
 import Users from "./components/Users";
+import ChangePassword from "./ChangePassword";
 
 import "./App.css";
 
@@ -234,7 +235,20 @@ function App() {
       />
     );
   }
-
+  
+  const mustChangePassword =
+    localStorage.getItem("mustChangePassword") === "true";
+  
+  if (mustChangePassword) {
+    return (
+      <ChangePassword
+        onPasswordChanged={() => {
+          window.location.reload();
+        }}
+      />
+    );
+  }
+  
   const canAccessUsers = [
     "Administrator",
     "Manager",

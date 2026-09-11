@@ -30,17 +30,17 @@ function Login({ onLogin }) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Login failed"
-        );
+        throw new Error(data.message || "Login failed");
       }
-
-      // Save authentication information
+      
       localStorage.setItem("token", data.token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify(data.user)
-      );
+      localStorage.setItem("user", JSON.stringify(data.user));
+      
+      if (data.mustChangePassword) {
+        localStorage.setItem("mustChangePassword", "true");
+      } else {
+        localStorage.removeItem("mustChangePassword");
+      }
 
       // Tell App.jsx that login was successful
       onLogin(data.user);
