@@ -15,7 +15,13 @@ router.get(
   authorize("Administrator", "Manager", "IT Support Agent"),
   async (req, res) => {
   try {
-    const users = await User.find().sort({ name: 1 });
+    const includeInactive =
+    req.user.role === "Administrator" &&
+    req.query.includeInactive === "true";
+  
+  const users = await User.find(
+    includeInactive ? {} : { active: true }
+  ).sort({ name: 1 });
 
     res.status(200).json(users);
   } catch (error) {
@@ -79,7 +85,7 @@ router.post(
       user: user._id,
       action: "Created",
       description: `User account ${user.name} was created.`,
-      performedBy: "Haard Patel",
+      performedBy: req.user.name,
     });
 
     // Never send the password hash to the frontend
@@ -114,8 +120,26 @@ router.put(
   protect,
   authorize("Administrator", "Manager"),
   async (req, res) => {
-  try {
-    const updates = {};
+    try {
+      const targetUser = await User.findById(req.params.id);
+    
+      if (!targetUser) {
+        return res.status(404).json({
+          message: "User not found",
+        });
+      }
+    
+      // Managers cannot modify Administrator accounts
+      if (
+        req.user.role === "Manager" &&
+        targetUser.role === "Administrator"
+      ) {
+        return res.status(403).json({
+          message: "Managers cannot modify Administrator accounts",
+        });
+      }
+    
+      const updates = {};
 
     // Only update fields that were provided
     if (req.body.name !== undefined) {
@@ -123,21 +147,35 @@ router.put(
     }
 
     if (req.body.email !== undefined) {
-      updates.email = req.body.email;
+      const email = req.body.email.toLowerCase().trim();
+    
+      if (!email) {
+        return res.status(400).json({
+          message: "Email cannot be empty",
+        });
+      }
+    
+      updates.email = email;
     }
 
-    if (req.body.role !== undefined) {
-      updates.role = req.body.role;
-    }
-
+// Only Administrators can change user roles
+if (
+  req.body.role !== undefined &&
+  req.user.role === "Administrator"
+) {
+  updates.role = req.body.role;
+}
     if (req.body.department !== undefined) {
       updates.department = req.body.department;
     }
 
-    if (req.body.active !== undefined) {
-      updates.active = req.body.active;
-    }
-
+// Only Administrators can change account activation status
+if (
+  req.body.active !== undefined &&
+  req.user.role === "Administrator"
+) {
+  updates.active = req.body.active;
+}
     // Prevent empty updates
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({
@@ -164,7 +202,7 @@ router.put(
       user: user._id,
       action: "Updated",
       description: `User account ${user.name} was updated.`,
-      performedBy: "Haard Patel",
+      performedBy: req.user.name,
     });
     res.status(200).json({
       message: "User updated successfully",
@@ -184,9 +222,16 @@ router.patch(
   protect,
   authorize("Administrator"),
   async (req, res) => {
-  try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
+    try {
+      // Administrators cannot deactivate their own account
+      if (String(req.params.id) === String(req.user.id)) {
+        return res.status(400).json({
+          message: "You cannot deactivate your own account",
+        });
+      }
+    
+      const user = await User.findByIdAndUpdate(
+        req.params.id,
       { active: false },
       {
         new: true,
@@ -208,7 +253,7 @@ router.patch(
       user: user._id,
       action: "Deactivated",
       description: `User ${user.name} was deactivated.`,
-      performedBy: "Haard Patel",
+      performedBy: req.user.name,
       reason,
     });
 
@@ -250,7 +295,7 @@ router.patch(
       user: user._id,
       action: "Reactivated",
       description: `User ${user.name} was reactivated.`,
-      performedBy: "Haard Patel",
+      performedBy: req.user.name,
     });
 
     res.status(200).json({
@@ -271,11 +316,26 @@ router.get(
   authorize("Administrator", "Manager", "IT Support Agent"),
   async (req, res) => {
   try {
-    const activities = await UserActivity.find({
-      user: req.params.id,
-    }).sort({ createdAt: -1 });
+    try {
+      const user = await User.findById(req.params.id);
+    
+      if (!user) {
+        return res.status(404).json({
+          message: "User not found",
+        });
+      }
+    
+      const activities = await UserActivity.find({
+        user: req.params.id,
+      }).sort({ createdAt: -1 });
 
-    res.status(200).json(activities);
+      res.status(200).json(activities);
+    } catch (error) {
+      res.status(400).json({
+        message: "Failed to fetch user activity",
+        error: error.message,
+      });
+    }
   } catch (error) {
     res.status(400).json({
       message: "Failed to fetch user activity",

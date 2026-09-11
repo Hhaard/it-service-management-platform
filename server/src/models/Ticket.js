@@ -37,7 +37,13 @@ const ticketSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
+    
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    
     assignedTo: {
       type: String,
       default: "Unassigned",

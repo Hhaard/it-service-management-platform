@@ -171,6 +171,7 @@ function Tickets({
                   <th>Priority</th>
                   <th>Status</th>
                   <th>Requester</th>
+                  <th>Created By</th>
                   <th>Assigned To</th>
                   <th>Created</th>
                   <th>SLA</th>
@@ -221,11 +222,17 @@ function Tickets({
                   <td>{ticket.requester}</td>
 
 <td>
+  {ticket.createdBy?.name || "Not Recorded"}
+</td>
+
+<td>
   {ticket.assignedTo || "Unassigned"}
 </td>
 
 <td>
-  {new Date(ticket.createdAt).toLocaleDateString()}
+  {new Date(
+    ticket.createdAt
+  ).toLocaleDateString()}
 </td>
 
 {/* SLA */}

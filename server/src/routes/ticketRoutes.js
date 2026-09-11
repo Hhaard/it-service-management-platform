@@ -7,7 +7,7 @@ const User = require("../models/User");
 
 const router = express.Router();
 
-// Create a new ticket
+
 // Create a new ticket
 router.post(
   "/",
@@ -22,10 +22,14 @@ router.post(
     try {
       let ticketData = { ...req.body };
 
-      // Requesters can only create tickets for themselves
-      if (req.user.role === "Requester") {
-        ticketData.requester = req.user.name;
-      }
+// Created By is always determined by the authenticated user.
+// Never trust a createdBy value sent by the frontend.
+ticketData.createdBy = req.user.id;
+
+// Requesters can only create tickets for themselves
+if (req.user.role === "Requester") {
+  ticketData.requester = req.user.name;
+}
 
       const ticket = await Ticket.create(ticketData);
 
@@ -63,9 +67,27 @@ router.get(
       if (req.user.role === "Requester") {
         tickets = await Ticket.find({
           requester: req.user.name,
-        }).sort({ createdAt: -1 });
+        })
+          .populate(
+            "createdBy",
+            "name email role department"
+          )
+          .populate(
+            "assignedToUser",
+            "name email role department"
+          )
+          .sort({ createdAt: -1 });
       } else {
-        tickets = await Ticket.find().sort({ createdAt: -1 });
+        tickets = await Ticket.find()
+          .populate(
+            "createdBy",
+            "name email role department"
+          )
+          .populate(
+            "assignedToUser",
+            "name email role department"
+          )
+          .sort({ createdAt: -1 });
       }
 
       res.status(200).json(tickets);
@@ -154,7 +176,15 @@ router.get(
   ),
   async (req, res) => {
   try {
-    const ticket = await Ticket.findById(req.params.id);
+    const ticket = await Ticket.findById(req.params.id)
+    .populate(
+      "createdBy",
+      "name email role department"
+    )
+    .populate(
+      "assignedToUser",
+      "name email role department"
+    );
 
     if (!ticket) {
       return res.status(404).json({
@@ -216,15 +246,22 @@ router.put(
         });
       }
 
-      // Requesters can only modify title and description
-      let updateData = req.body;
+      let updateData = { ...req.body };
 
-      if (req.user.role === "Requester") {
-        updateData = {
-          title: req.body.title,
-          description: req.body.description,
-        };
-      }
+      // Created By is permanent.
+      // It must never be changed after ticket creation.
+      delete updateData.createdBy;
+      
+      // Requester is also protected after ticket creation.
+      // It must not be changed through ticket updates.
+      delete updateData.requester;
+
+if (req.user.role === "Requester") {
+  updateData = {
+    title: req.body.title,
+    description: req.body.description,
+  };
+}
 
       const changes = [];
 
@@ -267,13 +304,19 @@ if (
   const assignedUser = await User.findById(
     updateData.assignedToUser
   );
-
+  
   if (!assignedUser) {
     return res.status(400).json({
       message: "Assigned user not found",
     });
   }
-
+  
+  if (!assignedUser.active) {
+    return res.status(400).json({
+      message: "Cannot assign a ticket to a deactivated user",
+    });
+  }
+  
   // Remove assignment if the user is inactive
   if (
     "assignedToUser" in updateData &&

@@ -592,13 +592,25 @@ function TicketDetails({
                 </div>
 
                 <div className="property">
-                  <span>Requester</span>
+  <span>Created By</span>
 
-                  <strong>
-                    {ticket.requester}
-                  </strong>
-                </div>
+  <strong className="assigned-user-display">
+    {ticket.createdBy ? (
+      <>
+        <span>
+          {ticket.createdBy.name}
+        </span>
 
+        <small>
+          {ticket.createdBy.role} ·{" "}
+          {ticket.createdBy.department}
+        </small>
+      </>
+    ) : (
+      "Not Recorded"
+    )}
+  </strong>
+</div>
                 <div className="property">
                   <span>Assigned To</span>
 
