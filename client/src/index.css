@@ -8,3 +8,117 @@ body,
 body {
   min-width: 320px;
 }
+
+/* ==================================================
+   USER ACTIVITY HISTORY
+   ================================================== */
+
+   .activity-modal {
+    width: min(760px, 92vw);
+    max-height: 82vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .activity-modal .modal-header {
+    flex-shrink: 0;
+  }
+  
+  .activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 8px 4px 18px;
+    overflow-y: auto;
+    max-height: 52vh;
+  }
+  
+  .activity-item {
+    display: flex;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.035);
+    transition: all 0.2s ease;
+  }
+  
+  .activity-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateY(-1px);
+  }
+  
+  .activity-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 17px;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+  
+  .activity-content {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .activity-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 6px;
+  }
+  
+  .activity-top strong {
+    font-size: 14px;
+  }
+  
+  .activity-top span {
+    font-size: 12px;
+    opacity: 0.6;
+    white-space: nowrap;
+  }
+  
+  .activity-content p {
+    margin: 0 0 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: 0.85;
+  }
+  
+  .activity-content small {
+    display: block;
+    font-size: 12px;
+    opacity: 0.65;
+    margin-top: 3px;
+  }
+  
+  .activity-state {
+    padding: 50px 20px;
+    text-align: center;
+    opacity: 0.65;
+    font-size: 14px;
+  }
+  
+  .activity-error {
+    padding: 20px;
+    border-radius: 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #fca5a5;
+    margin: 10px 0 20px;
+    font-size: 14px;
+  }
+  
+  .activity-modal .modal-actions {
+    flex-shrink: 0;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+  }

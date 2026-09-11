@@ -29,6 +29,12 @@ function Users({ currentUser }) {
   const [deactivating, setDeactivating] = useState(false);
   const [deactivationReason, setDeactivationReason] = useState("");
 
+  const [showActivity, setShowActivity] = useState(false);
+const [activityUser, setActivityUser] = useState(null);
+const [userActivities, setUserActivities] = useState([]);
+const [activityLoading, setActivityLoading] = useState(false);
+const [activityError, setActivityError] = useState("");
+
   // --------------------------------------------------
   // ROLE PERMISSIONS
   // --------------------------------------------------
@@ -64,7 +70,11 @@ function Users({ currentUser }) {
         return;
       }
 
-      const response = await fetch(`${API_URL}/users`, {
+      const usersEndpoint = isAdmin
+  ? `${API_URL}/users?includeInactive=true`
+  : `${API_URL}/users`;
+
+const response = await fetch(usersEndpoint, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -402,6 +412,69 @@ function Users({ currentUser }) {
   };
 
   // --------------------------------------------------
+// USER ACTIVITY HISTORY
+// --------------------------------------------------
+
+const handleViewActivity = async (user) => {
+  try {
+    setActivityUser(user);
+    setUserActivities([]);
+    setActivityError("");
+    setActivityLoading(true);
+    setShowActivity(true);
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setActivityError("Authentication required");
+      return;
+    }
+
+    const response = await fetch(
+      `${API_URL}/users/${user._id}/activity`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (response.status === 401) {
+      setActivityError("Authentication required");
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Failed to fetch user activity"
+      );
+    }
+
+    setUserActivities(data);
+  } catch (err) {
+    console.error(
+      "Fetch user activity error:",
+      err
+    );
+
+    setActivityError(err.message);
+  } finally {
+    setActivityLoading(false);
+  }
+};
+
+const closeActivity = () => {
+  setShowActivity(false);
+  setActivityUser(null);
+  setUserActivities([]);
+  setActivityError("");
+};
+
+  // --------------------------------------------------
   // UI
   // --------------------------------------------------
 
@@ -579,18 +652,26 @@ function Users({ currentUser }) {
                       <div className="user-actions">
 
                         {canEditUser && (
-                          <button
-                            className="edit-user-button"
-                            onClick={() => {
-                              setEditingUser({
-                                ...user,
-                              });
-                              setEditError("");
-                              setShowEditForm(true);
-                            }}
-                          >
-                            Edit
-                          </button>
+                          <div>
+                            <button
+                              className="secondary-button"
+                              onClick={() => handleViewActivity(user)}
+                            >
+                              View Activity
+                            </button>
+                            <button
+                              className="edit-user-button"
+                              onClick={() => {
+                                setEditingUser({
+                                  ...user,
+                                });
+                                setEditError("");
+                                setShowEditForm(true);
+                              }}
+                            >
+                              Edit
+                            </button>
+                          </div>
                         )}
 
                         {canManageUserStatus &&
@@ -1204,8 +1285,103 @@ function Users({ currentUser }) {
           </div>
         )}
 
+        {/* USER ACTIVITY MODAL */}
+{showActivity && activityUser && (
+  <div className="modal-overlay">
+    <div className="modal activity-modal">
+      <div className="modal-header">
+        <div>
+          <h2>User Activity</h2>
+          <p>
+            Activity history for{" "}
+            <strong>{activityUser.name}</strong>
+          </p>
+        </div>
+
+        <button
+          className="modal-close"
+          onClick={closeActivity}
+        >
+          ×
+        </button>
+      </div>
+
+      {activityLoading ? (
+        <div className="activity-state">
+          Loading activity...
+        </div>
+      ) : activityError ? (
+        <div className="activity-error">
+          {activityError}
+        </div>
+      ) : userActivities.length === 0 ? (
+        <div className="activity-state">
+          No activity recorded for this user.
+        </div>
+      ) : (
+        <div className="activity-list">
+          {userActivities.map((activity) => (
+            <div
+              className="activity-item"
+              key={activity._id}
+            >
+              <div className="activity-icon">
+                {activity.action === "Created"
+                  ? "+"
+                  : activity.action === "Deactivated"
+                  ? "−"
+                  : activity.action === "Reactivated"
+                  ? "✓"
+                  : "↻"}
+              </div>
+
+              <div className="activity-content">
+                <div className="activity-top">
+                  <strong>{activity.action}</strong>
+
+                  <span>
+                    {new Date(
+                      activity.createdAt
+                    ).toLocaleString()}
+                  </span>
+                </div>
+
+                <p>{activity.description}</p>
+
+                <small>
+                  Performed by:{" "}
+                  <strong>
+                    {activity.performedBy}
+                  </strong>
+                </small>
+
+                {activity.reason && (
+                  <small>
+                    Reason: {activity.reason}
+                  </small>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="modal-actions">
+        <button
+          className="secondary-button"
+          onClick={closeActivity}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </section>
   );
 }
+
+
 
 export default Users;
