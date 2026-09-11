@@ -76,7 +76,11 @@ router.get(
             "assignedToUser",
             "name email role department"
           )
-          .sort({ createdAt: -1 });
+          .sort({ createdAt: -1 })
+          .populate(
+            "resolvedBy",
+            "name email role department"
+          );
       } else {
         tickets = await Ticket.find()
           .populate(
@@ -184,6 +188,11 @@ router.get(
     .populate(
       "assignedToUser",
       "name email role department"
+    )
+
+    .populate(
+      "resolvedBy",
+      "name email role department"
     );
 
     if (!ticket) {
@@ -255,12 +264,60 @@ router.put(
       // Requester is also protected after ticket creation.
       // It must not be changed through ticket updates.
       delete updateData.requester;
+      
+      // Resolution information is controlled by the backend.
+      // Users cannot choose who the ticket was resolved by
+      // or manually set the resolution timestamp.
+      delete updateData.resolvedBy;
+      delete updateData.resolvedAt;
+      
+      if (req.user.role === "Requester") {
+        updateData = {
+          title: req.body.title,
+          description: req.body.description,
+        };
+      }
 
-if (req.user.role === "Requester") {
-  updateData = {
-    title: req.body.title,
-    description: req.body.description,
-  };
+      // A resolution summary is required when resolving a ticket.
+if (
+  updateData.status === "Resolved" &&
+  existingTicket.status !== "Resolved"
+) {
+  if (
+    !updateData.resolutionSummary ||
+    !updateData.resolutionSummary.trim()
+  ) {
+    return res.status(400).json({
+      message:
+        "Resolution summary is required when resolving a ticket",
+    });
+  }
+
+  updateData.resolutionSummary =
+    updateData.resolutionSummary.trim();
+}
+
+      // Resolution information
+// When a ticket is changed to Resolved, automatically
+// record who resolved it and when.
+if (
+  updateData.status === "Resolved" &&
+  existingTicket.status !== "Resolved"
+) {
+  updateData.resolvedBy = req.user.id;
+  updateData.resolvedAt = new Date();
+}
+
+// If a resolved ticket is moved back to another status,
+// clear the previous resolution information.
+if (
+  updateData.status &&
+  updateData.status !== "Resolved" &&
+  existingTicket.status === "Resolved"
+) {
+  updateData.resolvedBy = null;
+  updateData.resolvedAt = null;
+  updateData.resolutionSummary = "";
 }
 
       const changes = [];
@@ -381,10 +438,15 @@ if (
           new: true,
           runValidators: true,
         }
-      ).populate(
-        "assignedToUser",
-        "name email role department"
-      );
+      )
+        .populate(
+          "assignedToUser",
+          "name email role department"
+        )
+        .populate(
+          "resolvedBy",
+          "name email role department"
+        );
 
       // Record activity
       if (changes.length > 0) {
