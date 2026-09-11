@@ -55,6 +55,23 @@ const ticketSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+
+    resolutionSummary: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    
+    resolvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    
+    resolvedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
