@@ -6,12 +6,14 @@ const ticketSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      maxlength: 200,
     },
 
     description: {
       type: String,
       required: true,
       trim: true,
+      maxlength: 2000,
     },
 
     status: {
@@ -36,20 +38,22 @@ const ticketSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      maxlength: 100,
     },
-    
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
     },
-    
+
     assignedTo: {
       type: String,
       default: "Unassigned",
       trim: true,
+      maxlength: 100,
     },
-    
+
     assignedToUser: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -60,14 +64,15 @@ const ticketSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "",
+      maxlength: 2000,
     },
-    
+
     resolvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
     },
-    
+
     resolvedAt: {
       type: Date,
       default: null,

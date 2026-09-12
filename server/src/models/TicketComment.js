@@ -18,12 +18,14 @@ const ticketCommentSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      maxlength: 100,
     },
 
     authorRole: {
       type: String,
       required: true,
       trim: true,
+      maxlength: 50,
     },
 
     message: {

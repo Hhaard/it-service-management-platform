@@ -9,37 +9,59 @@ import "./App.css";
 
 const API_URL = "http://localhost:5000/api";
 
+
+// ============================================================
+// API ERROR HELPER
+// ============================================================
+
+const getApiErrorMessage = async (
+  response,
+  fallbackMessage
+) => {
+  try {
+    const data = await response.json();
+
+    return (
+      data.message ||
+      fallbackMessage
+    );
+  } catch {
+    return fallbackMessage;
+  }
+};
+
+
+// ============================================================
+// APP
+// ============================================================
+
 function App() {
-  /* =========================================
-     USER / AUTHENTICATION
-  ========================================= */
-
   const [currentUser, setCurrentUser] = useState(() => {
-    const savedUser = localStorage.getItem("user");
+    const savedUser =
+      localStorage.getItem("user");
 
-    return savedUser ? JSON.parse(savedUser) : null;
+    try {
+      return savedUser
+        ? JSON.parse(savedUser)
+        : null;
+    } catch {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      return null;
+    }
   });
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-
     setCurrentUser(null);
   };
-
-  /* =========================================
-     NAVIGATION
-  ========================================= */
 
   const [currentPage, setCurrentPage] =
     useState("dashboard");
 
   const [selectedTicket, setSelectedTicket] =
     useState(null);
-
-  /* =========================================
-     CREATE TICKET
-  ========================================= */
 
   const [showCreateForm, setShowCreateForm] =
     useState(false);
@@ -52,20 +74,20 @@ function App() {
     requester: "",
   });
 
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState("");
+  const [creating, setCreating] =
+    useState(false);
 
-  /* =========================================
-     TICKETS
-  ========================================= */
+  const [createError, setCreateError] =
+    useState("");
 
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [tickets, setTickets] =
+    useState([]);
 
-  /* =========================================
-     DASHBOARD ANALYTICS
-  ========================================= */
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
 
   const [dashboardData, setDashboardData] =
     useState(null);
@@ -76,19 +98,25 @@ function App() {
   const [dashboardError, setDashboardError] =
     useState("");
 
-  /* =========================================
-     FETCH TICKETS
-  ========================================= */
+
+// ============================================================
+// FETCH TICKETS
+// ============================================================
 
   const fetchTickets = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
 
       if (!token) {
-        setError("Authentication required");
+        setError(
+          "Your session has expired. Please sign in again."
+        );
+
+        setCurrentUser(null);
         return;
       }
 
@@ -97,7 +125,8 @@ function App() {
         {
           method: "GET",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
             Authorization: `Bearer ${token}`,
           },
         }
@@ -107,21 +136,28 @@ function App() {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         setCurrentUser(null);
+
         return;
       }
 
       if (!response.ok) {
-        const data = await response
-          .json()
-          .catch(() => ({}));
+        const message =
+          await getApiErrorMessage(
+            response,
+            "Unable to load tickets."
+          );
 
-        throw new Error(
-          data.message ||
-            "Failed to fetch tickets"
-        );
+        throw new Error(message);
       }
 
-      const data = await response.json();
+      const data =
+        await response.json();
+
+      if (!Array.isArray(data)) {
+        throw new Error(
+          "The server returned an unexpected ticket response."
+        );
+      }
 
       setTickets(data);
     } catch (err) {
@@ -130,27 +166,34 @@ function App() {
         err
       );
 
-      setError(err.message);
+      setError(
+        err.message ||
+          "Unable to load tickets. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  /* =========================================
-     FETCH DASHBOARD
-  ========================================= */
+
+// ============================================================
+// FETCH DASHBOARD
+// ============================================================
 
   const fetchDashboard = async () => {
     try {
       setDashboardLoading(true);
       setDashboardError("");
 
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
 
       if (!token) {
         setDashboardError(
-          "Authentication required"
+          "Your session has expired. Please sign in again."
         );
+
+        setCurrentUser(null);
         return;
       }
 
@@ -159,7 +202,8 @@ function App() {
         {
           method: "GET",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type":
+              "application/json",
             Authorization: `Bearer ${token}`,
           },
         }
@@ -169,21 +213,31 @@ function App() {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         setCurrentUser(null);
+
         return;
       }
 
       if (!response.ok) {
-        const data = await response
-          .json()
-          .catch(() => ({}));
+        const message =
+          await getApiErrorMessage(
+            response,
+            "Unable to load dashboard analytics."
+          );
 
-        throw new Error(
-          data.message ||
-            "Failed to fetch dashboard analytics"
-        );
+        throw new Error(message);
       }
 
-      const data = await response.json();
+      const data =
+        await response.json();
+
+      if (
+        !data ||
+        typeof data !== "object"
+      ) {
+        throw new Error(
+          "The server returned an unexpected dashboard response."
+        );
+      }
 
       setDashboardData(data);
     } catch (err) {
@@ -192,15 +246,19 @@ function App() {
         err
       );
 
-      setDashboardError(err.message);
+      setDashboardError(
+        err.message ||
+          "Unable to load dashboard analytics. Please try again."
+      );
     } finally {
       setDashboardLoading(false);
     }
   };
 
-  /* =========================================
-     REFRESH EVERYTHING
-  ========================================= */
+
+// ============================================================
+// REFRESH DASHBOARD
+// ============================================================
 
   const refreshDashboard = async () => {
     await Promise.all([
@@ -209,12 +267,16 @@ function App() {
     ]);
   };
 
-  /* =========================================
-     FORM HANDLING
-  ========================================= */
+
+// ============================================================
+// FORM INPUT
+// ============================================================
 
   const handleInputChange = (event) => {
-    const { name, value } = event.target;
+    const {
+      name,
+      value,
+    } = event.target;
 
     setFormData((previous) => ({
       ...previous,
@@ -222,40 +284,73 @@ function App() {
     }));
   };
 
-  /* =========================================
-     CREATE TICKET
-  ========================================= */
 
-  const handleCreateTicket = async (event) => {
+// ============================================================
+// CREATE TICKET
+// ============================================================
+
+  const handleCreateTicket = async (
+    event
+  ) => {
     event.preventDefault();
 
     try {
       setCreating(true);
       setCreateError("");
 
+      const token =
+        localStorage.getItem("token");
+
+      if (!token) {
+        setCreateError(
+          "Your session has expired. Please sign in again."
+        );
+
+        setCurrentUser(null);
+        return;
+      }
+
       const response = await fetch(
         `${API_URL}/tickets`,
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem(
-              "token"
-            )}`,
+            "Content-Type":
+              "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             ...formData,
-            requester: currentUser.name,
+            requester:
+              currentUser.name,
           }),
         }
       );
 
-      const data = await response.json();
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setCurrentUser(null);
+
+        return;
+      }
 
       if (!response.ok) {
+        const message =
+          await getApiErrorMessage(
+            response,
+            "Unable to create ticket."
+          );
+
+        throw new Error(message);
+      }
+
+      const data =
+        await response.json();
+
+      if (!data || !data._id) {
         throw new Error(
-          data.message ||
-            "Failed to create ticket"
+          "The server returned an unexpected ticket response."
         );
       }
 
@@ -269,22 +364,32 @@ function App() {
         description: "",
         category: "Other",
         priority: "Medium",
-        requester: currentUser.name,
+        requester:
+          currentUser.name,
       });
 
       setShowCreateForm(false);
 
       await fetchDashboard();
     } catch (err) {
-      setCreateError(err.message);
+      console.error(
+        "Create ticket error:",
+        err
+      );
+
+      setCreateError(
+        err.message ||
+          "Unable to create ticket. Please try again."
+      );
     } finally {
       setCreating(false);
     }
   };
 
-  /* =========================================
-     INITIAL DATA LOAD
-  ========================================= */
+
+// ============================================================
+// INITIAL DATA LOAD
+// ============================================================
 
   useEffect(() => {
     if (!currentUser) {
@@ -293,16 +398,18 @@ function App() {
 
     setFormData((previous) => ({
       ...previous,
-      requester: currentUser.name,
+      requester:
+        currentUser.name,
     }));
 
     fetchTickets();
     fetchDashboard();
   }, [currentUser]);
 
-  /* =========================================
-     DASHBOARD VALUES
-  ========================================= */
+
+// ============================================================
+// DASHBOARD DATA
+// ============================================================
 
   const summary =
     dashboardData?.summary || {};
@@ -372,9 +479,10 @@ function App() {
       Unknown: 0,
     };
 
-  /* =========================================
-     AUTH GUARDS
-  ========================================= */
+
+// ============================================================
+// LOGIN
+// ============================================================
 
   if (!currentUser) {
     return (
@@ -385,6 +493,11 @@ function App() {
       />
     );
   }
+
+
+// ============================================================
+// FORCE PASSWORD CHANGE
+// ============================================================
 
   const mustChangePassword =
     localStorage.getItem(
@@ -401,61 +514,62 @@ function App() {
     );
   }
 
+
+// ============================================================
+// PERMISSIONS
+// ============================================================
+
   const canAccessUsers = [
     "Administrator",
     "Manager",
     "IT Support Agent",
   ].includes(currentUser.role);
 
-  /* =========================================
-     OPEN CREATE TICKET MODAL
-  ========================================= */
+
+// ============================================================
+// CREATE TICKET MODAL
+// ============================================================
 
   const openCreateTicket = () => {
     setCreateError("");
 
     setFormData((previous) => ({
       ...previous,
-      requester: currentUser.name,
+      requester:
+        currentUser.name,
     }));
 
     setShowCreateForm(true);
   };
 
-  /* =========================================
-     MAIN UI
-  ========================================= */
+
+// ============================================================
+// MAIN APPLICATION
+// ============================================================
 
   return (
     <div className="app">
 
-      {/* =====================================
+      {/* ======================================================
           SIDEBAR
-      ===================================== */}
+      ====================================================== */}
 
       <aside className="sidebar">
 
-        {/* Brand */}
-
         <div className="brand">
-
           <div className="brand-icon">
             IT
           </div>
 
           <div className="brand-text">
-
             <h1>ITSM</h1>
 
             <span>
               Service Management
             </span>
-
           </div>
-
         </div>
 
-        {/* Navigation */}
 
         <nav className="navigation">
 
@@ -467,7 +581,9 @@ function App() {
                 : ""
             }`}
             onClick={() =>
-              setCurrentPage("dashboard")
+              setCurrentPage(
+                "dashboard"
+              )
             }
           >
             <span className="nav-icon">
@@ -479,6 +595,7 @@ function App() {
             </span>
           </button>
 
+
           <button
             type="button"
             className={`nav-item ${
@@ -487,7 +604,9 @@ function App() {
                 : ""
             }`}
             onClick={() =>
-              setCurrentPage("tickets")
+              setCurrentPage(
+                "tickets"
+              )
             }
           >
             <span className="nav-icon">
@@ -499,6 +618,7 @@ function App() {
             </span>
           </button>
 
+
           {canAccessUsers && (
             <button
               type="button"
@@ -508,7 +628,9 @@ function App() {
                   : ""
               }`}
               onClick={() =>
-                setCurrentPage("users")
+                setCurrentPage(
+                  "users"
+                )
               }
             >
               <span className="nav-icon">
@@ -521,19 +643,19 @@ function App() {
             </button>
           )}
 
+
           <button
             type="button"
-            className="nav-item"
-            onClick={() => {
-              setCurrentPage("dashboard");
-              setTimeout(() => {
-                document
-                  .getElementById("reports")
-                  ?.scrollIntoView({
-                    behavior: "smooth",
-                  });
-              }, 50);
-            }}
+            className={`nav-item ${
+              currentPage === "reports"
+                ? "active"
+                : ""
+            }`}
+            onClick={() =>
+              setCurrentPage(
+                "reports"
+              )
+            }
           >
             <span className="nav-icon">
               ▥
@@ -546,19 +668,17 @@ function App() {
 
         </nav>
 
-        {/* Sidebar Bottom */}
 
         <div className="sidebar-bottom">
 
           <div className="system-status">
-
             <span className="status-dot"></span>
 
             <span>
               API Connected
             </span>
-
           </div>
+
 
           <div className="user-card">
 
@@ -566,12 +686,14 @@ function App() {
               {currentUser.name
                 .split(" ")
                 .map(
-                  (name) => name[0]
+                  (name) =>
+                    name[0]
                 )
                 .join("")
                 .slice(0, 2)
                 .toUpperCase()}
             </div>
+
 
             <div className="user-info">
 
@@ -587,6 +709,7 @@ function App() {
 
           </div>
 
+
           <button
             type="button"
             className="logout-button"
@@ -599,15 +722,16 @@ function App() {
 
       </aside>
 
-      {/* =====================================
+
+      {/* ======================================================
           MAIN CONTENT
-      ===================================== */}
+      ====================================================== */}
 
       <main className="main-content">
 
-        {/* ===================================
+        {/* ====================================================
             TOPBAR
-        =================================== */}
+        ==================================================== */}
 
         <header className="topbar">
 
@@ -621,29 +745,39 @@ function App() {
               {currentPage ===
               "ticket-details"
                 ? "Ticket Details"
-                : currentPage === "tickets"
+                : currentPage ===
+                  "tickets"
                 ? "Tickets"
-                : currentPage === "users"
+                : currentPage ===
+                  "users"
                 ? "User Management"
+                : currentPage ===
+                  "reports"
+                ? "Reports"
                 : "Dashboard"}
             </h2>
 
           </div>
 
+
           <button
             type="button"
             className="create-button"
-            onClick={openCreateTicket}
+            onClick={
+              openCreateTicket
+            }
           >
             <span>+</span>
+
             Create Ticket
           </button>
 
         </header>
 
-        {/* ===================================
+
+        {/* ====================================================
             CREATE TICKET MODAL
-        =================================== */}
+        ==================================================== */}
 
         {showCreateForm && (
           <div className="modal-overlay">
@@ -669,11 +803,14 @@ function App() {
 
                 </div>
 
+
                 <button
                   type="button"
                   className="close-button"
                   onClick={() =>
-                    setShowCreateForm(false)
+                    setShowCreateForm(
+                      false
+                    )
                   }
                   aria-label="Close"
                 >
@@ -682,13 +819,12 @@ function App() {
 
               </div>
 
+
               <form
                 onSubmit={
                   handleCreateTicket
                 }
               >
-
-                {/* Ticket Title */}
 
                 <div className="form-group">
 
@@ -699,16 +835,19 @@ function App() {
                     </span>
 
                     TICKET TITLE
+
                     <span className="required">
                       *
                     </span>
 
                   </label>
 
+
                   <small>
                     Keep the title short and
                     specific.
                   </small>
+
 
                   <input
                     id="title"
@@ -726,7 +865,6 @@ function App() {
 
                 </div>
 
-                {/* Description */}
 
                 <div className="form-group">
 
@@ -737,23 +875,28 @@ function App() {
                     </span>
 
                     DESCRIPTION
+
                     <span className="required">
                       *
                     </span>
 
                   </label>
 
+
                   <small>
-                    Provide enough detail to
-                    help the IT team
-                    troubleshoot the issue.
-                    {" "}
+                    Provide enough detail to help
+                    the IT team troubleshoot the
+                    issue.{" "}
                     {
-                      formData.description
+                      formData
+                        .description
                         .length
                     }{" "}
-                    / 1000 characters.
+                    / 1000
+                    {" "}
+                    characters.
                   </small>
+
 
                   <textarea
                     id="description"
@@ -772,7 +915,6 @@ function App() {
 
                 </div>
 
-                {/* Category + Priority */}
 
                 <div className="form-row">
 
@@ -787,6 +929,7 @@ function App() {
                       CATEGORY
 
                     </label>
+
 
                     <div className="select-wrapper">
 
@@ -829,6 +972,7 @@ function App() {
 
                   </div>
 
+
                   <div className="form-group">
 
                     <label htmlFor="priority">
@@ -840,6 +984,7 @@ function App() {
                       PRIORITY
 
                     </label>
+
 
                     <div className="select-wrapper">
 
@@ -880,7 +1025,6 @@ function App() {
 
                 </div>
 
-                {/* Requester */}
 
                 <div className="form-group">
 
@@ -898,10 +1042,12 @@ function App() {
 
                   </label>
 
+
                   <small>
                     The person reporting the
                     issue.
                   </small>
+
 
                   <div className="requester-input">
 
@@ -919,15 +1065,16 @@ function App() {
 
                 </div>
 
-                {/* Error */}
 
                 {createError && (
-                  <div className="form-error">
+                  <div
+                    className="form-error"
+                    role="alert"
+                  >
                     {createError}
                   </div>
                 )}
 
-                {/* Form Actions */}
 
                 <div className="form-actions">
 
@@ -942,6 +1089,7 @@ function App() {
                   >
                     Cancel
                   </button>
+
 
                   <button
                     type="submit"
@@ -962,17 +1110,17 @@ function App() {
           </div>
         )}
 
-        {/* ===================================
-            DASHBOARD
-        =================================== */}
 
-        {currentPage === "dashboard" && (
+        {/* ====================================================
+            DASHBOARD PAGE
+        ==================================================== */}
+
+        {currentPage ===
+          "dashboard" && (
           <section
             id="dashboard"
             className="dashboard"
           >
-
-            {/* Welcome */}
 
             <div className="welcome">
 
@@ -992,22 +1140,26 @@ function App() {
                 </h3>
 
                 <p>
-                  Monitor your team's
-                  service requests, workload,
-                  and operational performance.
+                  Monitor your team's service
+                  requests, workload, and
+                  operational performance.
                 </p>
 
               </div>
 
+
               <button
                 type="button"
                 className="refresh-button"
-                onClick={refreshDashboard}
+                onClick={
+                  refreshDashboard
+                }
                 disabled={
                   loading ||
                   dashboardLoading
                 }
               >
+
                 <span className="refresh-icon">
                   ↻
                 </span>
@@ -1016,33 +1168,66 @@ function App() {
                 dashboardLoading
                   ? "Refreshing..."
                   : "Refresh"}
+
               </button>
 
             </div>
 
+
             {/* Dashboard Error */}
 
             {dashboardError && (
-              <div className="message error">
-                {dashboardError}
+              <div
+                className="message error"
+                role="alert"
+              >
+
+                <div>
+                  {dashboardError}
+                </div>
+
+                <button
+                  type="button"
+                  className="retry-button"
+                  onClick={
+                    fetchDashboard
+                  }
+                  disabled={
+                    dashboardLoading
+                  }
+                >
+                  {dashboardLoading
+                    ? "Retrying..."
+                    : "Retry"}
+                </button>
+
               </div>
             )}
 
-            {/* =================================
-                KEY METRICS
-            ================================= */}
+
+            {/* Dashboard Metrics */}
 
             <section className="stats-grid">
 
               {dashboardLoading ? (
+
                 <div className="message">
                   Loading dashboard
                   analytics...
                 </div>
-              ) : (
-                <>
 
-                  {/* Total Tickets */}
+              ) : dashboardError ? (
+
+                <div className="message">
+                  Dashboard analytics are
+                  temporarily unavailable.
+                  Use Retry above to try
+                  again.
+                </div>
+
+              ) : (
+
+                <>
 
                   <div className="stat-card">
 
@@ -1068,7 +1253,6 @@ function App() {
 
                   </div>
 
-                  {/* Open Tickets */}
 
                   <div className="stat-card">
 
@@ -1094,7 +1278,6 @@ function App() {
 
                   </div>
 
-                  {/* Critical Tickets */}
 
                   <div className="stat-card">
 
@@ -1120,7 +1303,6 @@ function App() {
 
                   </div>
 
-                  {/* Resolution Rate */}
 
                   <div className="stat-card">
 
@@ -1146,7 +1328,6 @@ function App() {
 
                   </div>
 
-                  {/* Average Resolution */}
 
                   <div className="stat-card">
 
@@ -1175,7 +1356,6 @@ function App() {
 
                   </div>
 
-                  {/* SLA */}
 
                   <div className="stat-card">
 
@@ -1202,459 +1382,15 @@ function App() {
                   </div>
 
                 </>
+
               )}
 
             </section>
 
-            {/* =================================
-                ANALYTICS
-            ================================= */}
 
-            {!dashboardLoading && (
-              <section
-                id="reports"
-                className="dashboard-analytics"
-              >
+            {/* Recent Tickets */}
 
-                <div className="analytics-heading">
-
-                  <div>
-
-                    <p className="eyebrow">
-                      PERFORMANCE
-                    </p>
-
-                    <h3>
-                      Service Desk Analytics
-                    </h3>
-
-                    <p>
-                      Understand ticket workload,
-                      severity, classification,
-                      and SLA performance.
-                    </p>
-
-                  </div>
-
-                </div>
-
-                <div className="analytics-grid">
-
-                  {/* =================================
-                      STATUS
-                  ================================= */}
-
-                  <div className="analytics-card">
-
-                    <div className="analytics-card-header">
-
-                      <div>
-
-                        <span className="analytics-kicker">
-                          WORKFLOW
-                        </span>
-
-                        <h3>
-                          Tickets by Status
-                        </h3>
-
-                      </div>
-
-                      <div className="analytics-total">
-
-                        <strong>
-                          {totalTickets}
-                        </strong>
-
-                        <span>
-                          Total
-                        </span>
-
-                      </div>
-
-                    </div>
-
-                    <div className="analytics-list">
-
-                      {Object.entries(
-                        statusCounts
-                      ).map(
-                        (
-                          [
-                            status,
-                            count,
-                          ]
-                        ) => {
-
-                          const percentage =
-                            totalTickets ===
-                            0
-                              ? 0
-                              : Math.round(
-                                  (count /
-                                    totalTickets) *
-                                    100
-                                );
-
-                          return (
-                            <div
-                              className="analytics-row"
-                              key={status}
-                            >
-
-                              <div className="analytics-label">
-
-                                <span>
-                                  {status}
-                                </span>
-
-                                <strong>
-                                  {count}
-                                </strong>
-
-                              </div>
-
-                              <div className="analytics-bar">
-
-                                <div
-                                  className={`analytics-fill status-${status
-                                    .toLowerCase()
-                                    .replace(
-                                      " ",
-                                      "-"
-                                    )}`}
-                                  style={{
-                                    width: `${percentage}%`,
-                                  }}
-                                />
-
-                              </div>
-
-                              <span className="analytics-percentage">
-                                {percentage}%
-                              </span>
-
-                            </div>
-                          );
-                        }
-                      )}
-
-                    </div>
-
-                  </div>
-
-                  {/* =================================
-                      PRIORITY
-                  ================================= */}
-
-                  <div className="analytics-card">
-
-                    <div className="analytics-card-header">
-
-                      <div>
-
-                        <span className="analytics-kicker">
-                          SEVERITY
-                        </span>
-
-                        <h3>
-                          Tickets by Priority
-                        </h3>
-
-                      </div>
-
-                      <div className="analytics-total">
-
-                        <strong>
-                          {criticalTickets}
-                        </strong>
-
-                        <span>
-                          Critical
-                        </span>
-
-                      </div>
-
-                    </div>
-
-                    <div className="analytics-list">
-
-                      {Object.entries(
-                        priorityCounts
-                      ).map(
-                        (
-                          [
-                            priority,
-                            count,
-                          ]
-                        ) => {
-
-                          const percentage =
-                            totalTickets ===
-                            0
-                              ? 0
-                              : Math.round(
-                                  (count /
-                                    totalTickets) *
-                                    100
-                                );
-
-                          return (
-                            <div
-                              className="analytics-row"
-                              key={priority}
-                            >
-
-                              <div className="analytics-label">
-
-                                <span>
-                                  {priority}
-                                </span>
-
-                                <strong>
-                                  {count}
-                                </strong>
-
-                              </div>
-
-                              <div className="analytics-bar">
-
-                                <div
-                                  className={`analytics-fill priority-${priority.toLowerCase()}`}
-                                  style={{
-                                    width: `${percentage}%`,
-                                  }}
-                                />
-
-                              </div>
-
-                              <span className="analytics-percentage">
-                                {percentage}%
-                              </span>
-
-                            </div>
-                          );
-                        }
-                      )}
-
-                    </div>
-
-                  </div>
-
-                  {/* =================================
-                      CATEGORY
-                  ================================= */}
-
-                  <div className="analytics-card">
-
-                    <div className="analytics-card-header">
-
-                      <div>
-
-                        <span className="analytics-kicker">
-                          CLASSIFICATION
-                        </span>
-
-                        <h3>
-                          Tickets by Category
-                        </h3>
-
-                      </div>
-
-                      <div className="analytics-total">
-
-                        <strong>
-                          {totalTickets}
-                        </strong>
-
-                        <span>
-                          Tickets
-                        </span>
-
-                      </div>
-
-                    </div>
-
-                    <div className="analytics-list">
-
-                      {Object.entries(
-                        categoryCounts
-                      ).map(
-                        (
-                          [
-                            category,
-                            count,
-                          ]
-                        ) => {
-
-                          const percentage =
-                            totalTickets ===
-                            0
-                              ? 0
-                              : Math.round(
-                                  (count /
-                                    totalTickets) *
-                                    100
-                                );
-
-                          return (
-                            <div
-                              className="analytics-row"
-                              key={category}
-                            >
-
-                              <div className="analytics-label">
-
-                                <span>
-                                  {category}
-                                </span>
-
-                                <strong>
-                                  {count}
-                                </strong>
-
-                              </div>
-
-                              <div className="analytics-bar">
-
-                                <div
-                                  className="analytics-fill"
-                                  style={{
-                                    width: `${percentage}%`,
-                                  }}
-                                />
-
-                              </div>
-
-                              <span className="analytics-percentage">
-                                {percentage}%
-                              </span>
-
-                            </div>
-                          );
-                        }
-                      )}
-
-                    </div>
-
-                  </div>
-
-                  {/* =================================
-                      SLA
-                  ================================= */}
-
-                  <div className="analytics-card">
-
-                    <div className="analytics-card-header">
-
-                      <div>
-
-                        <span className="analytics-kicker">
-                          SERVICE LEVEL
-                        </span>
-
-                        <h3>
-                          SLA Performance
-                        </h3>
-
-                      </div>
-
-                      <div className="sla-compliance">
-
-                        <strong>
-                          {slaCompliance}%
-                        </strong>
-
-                        <span>
-                          Compliance
-                        </span>
-
-                      </div>
-
-                    </div>
-
-                    <div className="analytics-list">
-
-                      {Object.entries(
-                        slaCounts
-                      ).map(
-                        (
-                          [
-                            status,
-                            count,
-                          ]
-                        ) => {
-
-                          const percentage =
-                            totalTickets ===
-                            0
-                              ? 0
-                              : Math.round(
-                                  (count /
-                                    totalTickets) *
-                                    100
-                                );
-
-                          return (
-                            <div
-                              className="analytics-row"
-                              key={status}
-                            >
-
-                              <div className="analytics-label">
-
-                                <span>
-                                  {status}
-                                </span>
-
-                                <strong>
-                                  {count}
-                                </strong>
-
-                              </div>
-
-                              <div className="analytics-bar">
-
-                                <div
-                                  className={`analytics-fill sla-${status
-                                    .toLowerCase()
-                                    .replace(
-                                      " ",
-                                      "-"
-                                    )}`}
-                                  style={{
-                                    width: `${percentage}%`,
-                                  }}
-                                />
-
-                              </div>
-
-                              <span className="analytics-percentage">
-                                {percentage}%
-                              </span>
-
-                            </div>
-                          );
-                        }
-                      )}
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-              </section>
-            )}
-
-            {/* =================================
-                RECENT TICKETS
-            ================================= */}
-
-            <section
-              id="tickets"
-              className="tickets-section"
-            >
+            <section className="tickets-section">
 
               <div className="section-header">
 
@@ -1674,6 +1410,7 @@ function App() {
 
                 </div>
 
+
                 <button
                   type="button"
                   className="view-all"
@@ -1688,17 +1425,40 @@ function App() {
 
               </div>
 
+
               {loading && (
                 <div className="message">
                   Loading tickets...
                 </div>
               )}
 
+
               {error && (
-                <div className="message error">
-                  {error}
+                <div
+                  className="message error"
+                  role="alert"
+                >
+
+                  <div>
+                    {error}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="retry-button"
+                    onClick={
+                      fetchTickets
+                    }
+                    disabled={loading}
+                  >
+                    {loading
+                      ? "Retrying..."
+                      : "Retry"}
+                  </button>
+
                 </div>
               )}
+
 
               {!loading &&
                 !error &&
@@ -1731,6 +1491,7 @@ function App() {
                   </div>
                 )}
 
+
               {!loading &&
                 !error &&
                 tickets.length > 0 && (
@@ -1741,7 +1502,6 @@ function App() {
                       <thead>
 
                         <tr>
-
                           <th>
                             Ticket
                           </th>
@@ -1761,24 +1521,25 @@ function App() {
                           <th>
                             Requester
                           </th>
-
                         </tr>
 
                       </thead>
+
 
                       <tbody>
 
                         {tickets
                           .slice(0, 10)
                           .map(
-                            (ticket) => (
+                            (
+                              ticket
+                            ) => (
                               <tr
                                 key={
                                   ticket._id
                                 }
                                 className="ticket-row"
                                 onClick={() => {
-
                                   setSelectedTicket(
                                     ticket
                                   );
@@ -1786,7 +1547,6 @@ function App() {
                                   setCurrentPage(
                                     "ticket-details"
                                   );
-
                                 }}
                               >
 
@@ -1813,11 +1573,13 @@ function App() {
 
                                 </td>
 
+
                                 <td>
                                   {
                                     ticket.category
                                   }
                                 </td>
+
 
                                 <td>
 
@@ -1836,6 +1598,7 @@ function App() {
 
                                 </td>
 
+
                                 <td>
 
                                   <span
@@ -1852,6 +1615,7 @@ function App() {
                                   </span>
 
                                 </td>
+
 
                                 <td>
                                   {
@@ -1875,11 +1639,545 @@ function App() {
           </section>
         )}
 
-        {/* =====================================
-            TICKETS PAGE
-        ===================================== */}
 
-        {currentPage === "tickets" && (
+        {/* ====================================================
+            REPORTS PAGE
+        ==================================================== */}
+
+        {currentPage ===
+          "reports" && (
+          <section className="reports-page">
+
+            <section className="dashboard-analytics">
+
+              <div className="analytics-heading">
+
+                <div>
+
+                  <p className="eyebrow">
+                    PERFORMANCE
+                  </p>
+
+                  <h3>
+                    Service Desk Analytics
+                  </h3>
+
+                  <p>
+                    Understand ticket workload,
+                    severity, classification,
+                    and SLA performance.
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              {dashboardError && (
+                <div
+                  className="message error"
+                  role="alert"
+                >
+
+                  <div>
+                    {dashboardError}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="retry-button"
+                    onClick={
+                      fetchDashboard
+                    }
+                    disabled={
+                      dashboardLoading
+                    }
+                  >
+                    {dashboardLoading
+                      ? "Retrying..."
+                      : "Retry"}
+                  </button>
+
+                </div>
+              )}
+
+
+              {dashboardLoading ? (
+
+                <div className="message">
+                  Loading report analytics...
+                </div>
+
+              ) : dashboardError ? (
+
+                <div className="message">
+                  Report analytics are
+                  temporarily unavailable.
+                  Use Retry above to try
+                  again.
+                </div>
+
+              ) : (
+
+                <div className="analytics-grid">
+
+                  {/* Tickets by Status */}
+
+                  <div className="analytics-card">
+
+                    <div className="analytics-card-header">
+
+                      <div>
+
+                        <span className="analytics-kicker">
+                          WORKFLOW
+                        </span>
+
+                        <h3>
+                          Tickets by Status
+                        </h3>
+
+                      </div>
+
+
+                      <div className="analytics-total">
+
+                        <strong>
+                          {totalTickets}
+                        </strong>
+
+                        <span>
+                          Total
+                        </span>
+
+                      </div>
+
+                    </div>
+
+
+                    <div className="analytics-list">
+
+                      {Object.entries(
+                        statusCounts
+                      ).map(
+                        ([
+                          status,
+                          count,
+                        ]) => {
+
+                          const percentage =
+                            totalTickets ===
+                            0
+                              ? 0
+                              : Math.round(
+                                  (count /
+                                    totalTickets) *
+                                    100
+                                );
+
+                          return (
+                            <div
+                              className="analytics-row"
+                              key={
+                                status
+                              }
+                            >
+
+                              <div className="analytics-label">
+
+                                <span>
+                                  {
+                                    status
+                                  }
+                                </span>
+
+                                <strong>
+                                  {
+                                    count
+                                  }
+                                </strong>
+
+                              </div>
+
+
+                              <div className="analytics-bar">
+
+                                <div
+                                  className={`analytics-fill status-${status
+                                    .toLowerCase()
+                                    .replace(
+                                      " ",
+                                      "-"
+                                    )}`}
+                                  style={{
+                                    width: `${percentage}%`,
+                                  }}
+                                />
+
+                              </div>
+
+
+                              <span className="analytics-percentage">
+                                {
+                                  percentage
+                                }%
+                              </span>
+
+                            </div>
+                          );
+                        }
+                      )}
+
+                    </div>
+
+                  </div>
+
+
+                  {/* Tickets by Priority */}
+
+                  <div className="analytics-card">
+
+                    <div className="analytics-card-header">
+
+                      <div>
+
+                        <span className="analytics-kicker">
+                          SEVERITY
+                        </span>
+
+                        <h3>
+                          Tickets by Priority
+                        </h3>
+
+                      </div>
+
+
+                      <div className="analytics-total">
+
+                        <strong>
+                          {
+                            criticalTickets
+                          }
+                        </strong>
+
+                        <span>
+                          Critical
+                        </span>
+
+                      </div>
+
+                    </div>
+
+
+                    <div className="analytics-list">
+
+                      {Object.entries(
+                        priorityCounts
+                      ).map(
+                        ([
+                          priority,
+                          count,
+                        ]) => {
+
+                          const percentage =
+                            totalTickets ===
+                            0
+                              ? 0
+                              : Math.round(
+                                  (count /
+                                    totalTickets) *
+                                    100
+                                );
+
+                          return (
+                            <div
+                              className="analytics-row"
+                              key={
+                                priority
+                              }
+                            >
+
+                              <div className="analytics-label">
+
+                                <span>
+                                  {
+                                    priority
+                                  }
+                                </span>
+
+                                <strong>
+                                  {
+                                    count
+                                  }
+                                </strong>
+
+                              </div>
+
+
+                              <div className="analytics-bar">
+
+                                <div
+                                  className={`analytics-fill priority-${priority.toLowerCase()}`}
+                                  style={{
+                                    width: `${percentage}%`,
+                                  }}
+                                />
+
+                              </div>
+
+
+                              <span className="analytics-percentage">
+                                {
+                                  percentage
+                                }%
+                              </span>
+
+                            </div>
+                          );
+                        }
+                      )}
+
+                    </div>
+
+                  </div>
+
+
+                  {/* Tickets by Category */}
+
+                  <div className="analytics-card">
+
+                    <div className="analytics-card-header">
+
+                      <div>
+
+                        <span className="analytics-kicker">
+                          CLASSIFICATION
+                        </span>
+
+                        <h3>
+                          Tickets by Category
+                        </h3>
+
+                      </div>
+
+
+                      <div className="analytics-total">
+
+                        <strong>
+                          {totalTickets}
+                        </strong>
+
+                        <span>
+                          Tickets
+                        </span>
+
+                      </div>
+
+                    </div>
+
+
+                    <div className="analytics-list">
+
+                      {Object.entries(
+                        categoryCounts
+                      ).map(
+                        ([
+                          category,
+                          count,
+                        ]) => {
+
+                          const percentage =
+                            totalTickets ===
+                            0
+                              ? 0
+                              : Math.round(
+                                  (count /
+                                    totalTickets) *
+                                    100
+                                );
+
+                          return (
+                            <div
+                              className="analytics-row"
+                              key={
+                                category
+                              }
+                            >
+
+                              <div className="analytics-label">
+
+                                <span>
+                                  {
+                                    category
+                                  }
+                                </span>
+
+                                <strong>
+                                  {
+                                    count
+                                  }
+                                </strong>
+
+                              </div>
+
+
+                              <div className="analytics-bar">
+
+                                <div
+                                  className="analytics-fill"
+                                  style={{
+                                    width: `${percentage}%`,
+                                  }}
+                                />
+
+                              </div>
+
+
+                              <span className="analytics-percentage">
+                                {
+                                  percentage
+                                }%
+                              </span>
+
+                            </div>
+                          );
+                        }
+                      )}
+
+                    </div>
+
+                  </div>
+
+
+                  {/* SLA Performance */}
+
+                  <div className="analytics-card">
+
+                    <div className="analytics-card-header">
+
+                      <div>
+
+                        <span className="analytics-kicker">
+                          SERVICE LEVEL
+                        </span>
+
+                        <h3>
+                          SLA Performance
+                        </h3>
+
+                      </div>
+
+
+                      <div className="sla-compliance">
+
+                        <strong>
+                          {
+                            slaCompliance
+                          }%
+                        </strong>
+
+                        <span>
+                          Compliance
+                        </span>
+
+                      </div>
+
+                    </div>
+
+
+                    <div className="analytics-list">
+
+                      {Object.entries(
+                        slaCounts
+                      ).map(
+                        ([
+                          status,
+                          count,
+                        ]) => {
+
+                          const percentage =
+                            totalTickets ===
+                            0
+                              ? 0
+                              : Math.round(
+                                  (count /
+                                    totalTickets) *
+                                    100
+                                );
+
+                          return (
+                            <div
+                              className="analytics-row"
+                              key={
+                                status
+                              }
+                            >
+
+                              <div className="analytics-label">
+
+                                <span>
+                                  {
+                                    status
+                                  }
+                                </span>
+
+                                <strong>
+                                  {
+                                    count
+                                  }
+                                </strong>
+
+                              </div>
+
+
+                              <div className="analytics-bar">
+
+                                <div
+                                  className={`analytics-fill sla-${status
+                                    .toLowerCase()
+                                    .replace(
+                                      " ",
+                                      "-"
+                                    )}`}
+                                  style={{
+                                    width: `${percentage}%`,
+                                  }}
+                                />
+
+                              </div>
+
+
+                              <span className="analytics-percentage">
+                                {
+                                  percentage
+                                }%
+                              </span>
+
+                            </div>
+                          );
+                        }
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              )}
+
+            </section>
+
+          </section>
+        )}
+
+
+        {/* ====================================================
+            TICKETS PAGE
+        ==================================================== */}
+
+        {currentPage ===
+          "tickets" && (
           <Tickets
             tickets={tickets}
             onRefresh={() => {
@@ -1889,8 +2187,13 @@ function App() {
             onCreateTicket={
               openCreateTicket
             }
-            onSelectTicket={(ticket) => {
-              setSelectedTicket(ticket);
+            onSelectTicket={(
+              ticket
+            ) => {
+              setSelectedTicket(
+                ticket
+              );
+
               setCurrentPage(
                 "ticket-details"
               );
@@ -1898,28 +2201,40 @@ function App() {
           />
         )}
 
-        {/* =====================================
+
+        {/* ====================================================
             USERS PAGE
-        ===================================== */}
+        ==================================================== */}
 
         {currentPage === "users" &&
           canAccessUsers && (
             <Users
-              currentUser={currentUser}
+              currentUser={
+                currentUser
+              }
             />
           )}
 
-        {/* =====================================
-            TICKET DETAILS
-        ===================================== */}
 
-        {currentPage === "ticket-details" &&
+        {/* ====================================================
+            TICKET DETAILS PAGE
+        ==================================================== */}
+
+        {currentPage ===
+          "ticket-details" &&
           selectedTicket && (
             <TicketDetails
-              ticket={selectedTicket}
-              currentUser={currentUser}
+              ticket={
+                selectedTicket
+              }
+              currentUser={
+                currentUser
+              }
               onBack={() => {
-                setSelectedTicket(null);
+                setSelectedTicket(
+                  null
+                );
+
                 setCurrentPage(
                   "tickets"
                 );
@@ -1927,7 +2242,6 @@ function App() {
               onTicketUpdated={(
                 updatedTicket
               ) => {
-
                 setTickets(
                   (previous) =>
                     previous.map(

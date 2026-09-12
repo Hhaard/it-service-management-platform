@@ -1,15 +1,59 @@
 import { useEffect, useState } from "react";
 import { getSlaStatus } from "../utils/sla";
 
+const API_URL = "http://localhost:5000/api";
+
+
+// ============================================================
+// API ERROR HELPER
+// ============================================================
+
+const getApiErrorMessage = async (
+  response,
+  fallbackMessage
+) => {
+  try {
+    const data = await response.json();
+
+    return (
+      data.message ||
+      fallbackMessage
+    );
+  } catch {
+    return fallbackMessage;
+  }
+};
+
+
+// ============================================================
+// SESSION HANDLER
+// ============================================================
+
+const handleSessionExpired = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+
+  // App.jsx will detect the missing user and
+  // display the Login screen after reload.
+  window.location.reload();
+};
+
+
+// ============================================================
+// TICKET DETAILS
+// ============================================================
+
 function TicketDetails({
   ticket,
   onBack,
   onTicketUpdated,
   currentUser,
 }) {
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] =
+    useState(false);
 
-  const isRequester = currentUser?.role === "Requester";
+  const isRequester =
+    currentUser?.role === "Requester";
 
   const canManageTicket = [
     "Administrator",
@@ -17,7 +61,13 @@ function TicketDetails({
     "Manager",
   ].includes(currentUser?.role);
 
-  const canDelete = currentUser?.role === "Administrator";
+  const canDelete =
+    currentUser?.role === "Administrator";
+
+
+  // ==========================================================
+  // FORM STATE
+  // ==========================================================
 
   const [formData, setFormData] = useState({
     title: ticket.title,
@@ -26,30 +76,74 @@ function TicketDetails({
     priority: ticket.priority,
     category: ticket.category,
     requester: ticket.requester,
-    assignedTo: ticket.assignedTo || "Unassigned",
-    assignedToUser: ticket.assignedToUser?._id || "",
-    resolutionSummary: ticket.resolutionSummary || "",
+    assignedTo:
+      ticket.assignedTo || "Unassigned",
+    assignedToUser:
+      ticket.assignedToUser?._id || "",
+    resolutionSummary:
+      ticket.resolutionSummary || "",
   });
 
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [workflowLoading, setWorkflowLoading] = useState(false);
 
-  const [error, setError] = useState("");
+  // ==========================================================
+  // LOADING / ERROR STATE
+  // ==========================================================
 
-  const [activities, setActivities] = useState([]);
-  const [activityLoading, setActivityLoading] = useState(true);
+  const [saving, setSaving] =
+    useState(false);
 
-  const [note, setNote] = useState("");
-  const [noteSaving, setNoteSaving] = useState(false);
+  const [deleting, setDeleting] =
+    useState(false);
 
-  const [comments, setComments] = useState([]);
-  const [commentsLoading, setCommentsLoading] = useState(true);
-  const [comment, setComment] = useState("");
-  const [commentSaving, setCommentSaving] = useState(false);
+  const [workflowLoading, setWorkflowLoading] =
+    useState(false);
 
-  const [users, setUsers] = useState([]);
-  const [usersLoading, setUsersLoading] = useState(true);
+  const [error, setError] =
+    useState("");
+
+  const [activities, setActivities] =
+    useState([]);
+
+  const [activityLoading, setActivityLoading] =
+    useState(true);
+
+  const [activityError, setActivityError] =
+    useState("");
+
+  const [note, setNote] =
+    useState("");
+
+  const [noteSaving, setNoteSaving] =
+    useState(false);
+
+  const [comments, setComments] =
+    useState([]);
+
+  const [commentsLoading, setCommentsLoading] =
+    useState(true);
+
+  const [commentsError, setCommentsError] =
+    useState("");
+
+  const [comment, setComment] =
+    useState("");
+
+  const [commentSaving, setCommentSaving] =
+    useState(false);
+
+  const [users, setUsers] =
+    useState([]);
+
+  const [usersLoading, setUsersLoading] =
+    useState(true);
+
+  const [usersError, setUsersError] =
+    useState("");
+
+
+  // ==========================================================
+  // SYNC FORM WITH TICKET
+  // ==========================================================
 
   useEffect(() => {
     setFormData({
@@ -59,41 +153,82 @@ function TicketDetails({
       priority: ticket.priority,
       category: ticket.category,
       requester: ticket.requester,
-      assignedTo: ticket.assignedTo || "Unassigned",
-      assignedToUser: ticket.assignedToUser?._id || "",
-      resolutionSummary: ticket.resolutionSummary || "",
+      assignedTo:
+        ticket.assignedTo || "Unassigned",
+      assignedToUser:
+        ticket.assignedToUser?._id || "",
+      resolutionSummary:
+        ticket.resolutionSummary || "",
     });
+
+    setIsEditing(false);
+    setError("");
   }, [ticket]);
+
+
+  // ==========================================================
+  // FETCH USERS
+  // ==========================================================
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setUsersLoading(true);
+        setUsersError("");
 
-        const token = localStorage.getItem("token");
+        const token =
+          localStorage.getItem("token");
 
         if (!token) {
-          setUsers([]);
+          handleSessionExpired();
           return;
         }
 
         const response = await fetch(
-          "http://localhost:5000/api/users",
+          `${API_URL}/users`,
           {
+            method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch users");
+        if (response.status === 401) {
+          handleSessionExpired();
+          return;
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+          const message =
+            await getApiErrorMessage(
+              response,
+              "Unable to load users for ticket assignment."
+            );
+
+          throw new Error(message);
+        }
+
+        const data =
+          await response.json();
+
+        if (!Array.isArray(data)) {
+          throw new Error(
+            "The server returned an unexpected user response."
+          );
+        }
+
         setUsers(data);
       } catch (err) {
-        console.error("Fetch users error:", err);
+        console.error(
+          "Fetch users error:",
+          err
+        );
+
+        setUsersError(
+          err.message ||
+            "Unable to load users for ticket assignment."
+        );
       } finally {
         setUsersLoading(false);
       }
@@ -102,44 +237,76 @@ function TicketDetails({
     if (canManageTicket) {
       fetchUsers();
     } else {
+      setUsers([]);
       setUsersLoading(false);
+      setUsersError("");
     }
   }, [canManageTicket]);
 
-  /*
-   * Fetch ticket activity only for IT staff.
-   * Requesters do not have permission to access
-   * the activity/internal-notes endpoint.
-   */
+
+  // ==========================================================
+  // FETCH TICKET ACTIVITY
+  // ==========================================================
+
   useEffect(() => {
     const fetchActivities = async () => {
       try {
         setActivityLoading(true);
+        setActivityError("");
 
-        const token = localStorage.getItem("token");
+        const token =
+          localStorage.getItem("token");
 
         if (!token) {
-          setActivities([]);
+          handleSessionExpired();
           return;
         }
 
         const response = await fetch(
-          `http://localhost:5000/api/tickets/${ticket._id}/activity`,
+          `${API_URL}/tickets/${ticket._id}/activity`,
           {
+            method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch ticket activity");
+        if (response.status === 401) {
+          handleSessionExpired();
+          return;
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+          const message =
+            await getApiErrorMessage(
+              response,
+              "Unable to load ticket activity."
+            );
+
+          throw new Error(message);
+        }
+
+        const data =
+          await response.json();
+
+        if (!Array.isArray(data)) {
+          throw new Error(
+            "The server returned an unexpected activity response."
+          );
+        }
+
         setActivities(data);
       } catch (err) {
-        console.error("Fetch ticket activity error:", err);
+        console.error(
+          "Fetch ticket activity error:",
+          err
+        );
+
+        setActivityError(
+          err.message ||
+            "Unable to load ticket activity."
+        );
       } finally {
         setActivityLoading(false);
       }
@@ -150,44 +317,73 @@ function TicketDetails({
     } else {
       setActivities([]);
       setActivityLoading(false);
+      setActivityError("");
     }
   }, [ticket._id, canManageTicket]);
 
-  /*
-   * Public comments are available to both staff
-   * and Requesters who have access to the ticket.
-   */
+
+  // ==========================================================
+  // FETCH PUBLIC COMMENTS
+  // ==========================================================
+
   useEffect(() => {
     const fetchComments = async () => {
       try {
         setCommentsLoading(true);
+        setCommentsError("");
 
-        const token = localStorage.getItem("token");
+        const token =
+          localStorage.getItem("token");
 
         if (!token) {
-          setComments([]);
+          handleSessionExpired();
           return;
         }
 
         const response = await fetch(
-          `http://localhost:5000/api/tickets/${ticket._id}/comments`,
+          `${API_URL}/tickets/${ticket._id}/comments`,
           {
+            method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
             },
           }
         );
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch ticket comments");
+        if (response.status === 401) {
+          handleSessionExpired();
+          return;
         }
 
-        const data = await response.json();
+        if (!response.ok) {
+          const message =
+            await getApiErrorMessage(
+              response,
+              "Unable to load ticket conversation."
+            );
+
+          throw new Error(message);
+        }
+
+        const data =
+          await response.json();
+
+        if (!Array.isArray(data)) {
+          throw new Error(
+            "The server returned an unexpected comments response."
+          );
+        }
+
         setComments(data);
       } catch (err) {
         console.error(
           "Fetch ticket comments error:",
           err
+        );
+
+        setCommentsError(
+          err.message ||
+            "Unable to load ticket conversation."
         );
       } finally {
         setCommentsLoading(false);
@@ -197,46 +393,101 @@ function TicketDetails({
     fetchComments();
   }, [ticket._id]);
 
+
+  // ==========================================================
+  // REFRESH ACTIVITIES
+  // ==========================================================
+
   const refreshActivities = async () => {
     if (!canManageTicket) {
-      return;
+      return false;
     }
 
     try {
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
 
       if (!token) {
-        return;
+        handleSessionExpired();
+        return false;
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/tickets/${ticket._id}/activity`,
+        `${API_URL}/tickets/${ticket._id}/activity`,
         {
+          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
 
-      if (!response.ok) {
-        return;
+      if (response.status === 401) {
+        handleSessionExpired();
+        return false;
       }
 
-      const data = await response.json();
+      if (!response.ok) {
+        const message =
+          await getApiErrorMessage(
+            response,
+            "Unable to refresh ticket activity."
+          );
+
+        throw new Error(message);
+      }
+
+      const data =
+        await response.json();
+
+      if (!Array.isArray(data)) {
+        throw new Error(
+          "The server returned an unexpected activity response."
+        );
+      }
+
       setActivities(data);
+      setActivityError("");
+
+      return true;
     } catch (err) {
-      console.error("Refresh activities error:", err);
+      console.error(
+        "Refresh activities error:",
+        err
+      );
+
+      setActivityError(
+        err.message ||
+          "Unable to refresh ticket activity."
+      );
+
+      return false;
     }
   };
 
+
+  // ==========================================================
+  // FORM INPUT
+  // ==========================================================
+
   const handleChange = (event) => {
-    const { name, value } = event.target;
+    const {
+      name,
+      value,
+    } = event.target;
 
     setFormData((previous) => ({
       ...previous,
       [name]: value,
     }));
+
+    setError("");
   };
+
+
+  // ==========================================================
+  // SAVE TICKET
+  // ==========================================================
 
   const handleSave = async (event) => {
     event.preventDefault();
@@ -245,10 +496,12 @@ function TicketDetails({
     setError("");
 
     try {
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
 
       if (!token) {
-        throw new Error("Authentication required");
+        handleSessionExpired();
+        return;
       }
 
       let updateData;
@@ -256,7 +509,8 @@ function TicketDetails({
       if (isRequester) {
         updateData = {
           title: formData.title,
-          description: formData.description,
+          description:
+            formData.description,
         };
       } else {
         updateData = {
@@ -264,28 +518,50 @@ function TicketDetails({
           assignedTo:
             users.find(
               (user) =>
-                user._id === formData.assignedToUser
-            )?.name || "Unassigned",
+                user._id ===
+                formData.assignedToUser
+            )?.name ||
+            "Unassigned",
         };
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/tickets/${ticket._id}`,
+        `${API_URL}/tickets/${ticket._id}`,
         {
           method: "PUT",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+            Authorization:
+              `Bearer ${token}`,
           },
-          body: JSON.stringify(updateData),
+          body: JSON.stringify(
+            updateData
+          ),
         }
       );
 
-      const data = await response.json();
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
 
       if (!response.ok) {
+        const message =
+          await getApiErrorMessage(
+            response,
+            "Unable to update ticket."
+          );
+
+        throw new Error(message);
+      }
+
+      const data =
+        await response.json();
+
+      if (!data || !data._id) {
         throw new Error(
-          data.message || "Failed to update ticket"
+          "The server returned an unexpected ticket response."
         );
       }
 
@@ -297,22 +573,36 @@ function TicketDetails({
 
       setIsEditing(false);
     } catch (err) {
-      setError(err.message);
+      console.error(
+        "Update ticket error:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Unable to update ticket. Please try again."
+      );
     } finally {
       setSaving(false);
     }
   };
+
+
+  // ==========================================================
+  // DELETE TICKET
+  // ==========================================================
 
   const handleDelete = async () => {
     if (!canDelete) {
       return;
     }
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete ticket #${ticket._id
-        .slice(-6)
-        .toUpperCase()}?\n\nThis action cannot be undone.`
-    );
+    const confirmed =
+      window.confirm(
+        `Are you sure you want to delete ticket #${ticket._id
+          .slice(-6)
+          .toUpperCase()}?\n\nThis action cannot be undone.`
+      );
 
     if (!confirmed) {
       return;
@@ -322,39 +612,64 @@ function TicketDetails({
     setError("");
 
     try {
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
 
       if (!token) {
-        throw new Error("Authentication required");
+        handleSessionExpired();
+        return;
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/tickets/${ticket._id}`,
+        `${API_URL}/tickets/${ticket._id}`,
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization:
+              `Bearer ${token}`,
           },
         }
       );
 
-      const data = await response.json();
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to delete ticket"
-        );
+        const message =
+          await getApiErrorMessage(
+            response,
+            "Unable to delete ticket."
+          );
+
+        throw new Error(message);
       }
 
       onBack();
     } catch (err) {
-      setError(err.message);
+      console.error(
+        "Delete ticket error:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Unable to delete ticket. Please try again."
+      );
     } finally {
       setDeleting(false);
     }
   };
 
-  const handleWorkflowAction = async (updates) => {
+
+  // ==========================================================
+  // WORKFLOW ACTION
+  // ==========================================================
+
+  const handleWorkflowAction = async (
+    updates
+  ) => {
     if (!canManageTicket) {
       return;
     }
@@ -363,29 +678,51 @@ function TicketDetails({
     setError("");
 
     try {
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
 
       if (!token) {
-        throw new Error("Authentication required");
+        handleSessionExpired();
+        return;
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/tickets/${ticket._id}`,
+        `${API_URL}/tickets/${ticket._id}`,
         {
           method: "PUT",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+            Authorization:
+              `Bearer ${token}`,
           },
-          body: JSON.stringify(updates),
+          body: JSON.stringify(
+            updates
+          ),
         }
       );
 
-      const data = await response.json();
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
 
       if (!response.ok) {
+        const message =
+          await getApiErrorMessage(
+            response,
+            "Unable to update ticket workflow."
+          );
+
+        throw new Error(message);
+      }
+
+      const data =
+        await response.json();
+
+      if (!data || !data._id) {
         throw new Error(
-          data.message || "Failed to update ticket"
+          "The server returned an unexpected ticket response."
         );
       }
 
@@ -393,16 +730,34 @@ function TicketDetails({
 
       await refreshActivities();
     } catch (err) {
-      setError(err.message);
+      console.error(
+        "Workflow update error:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Unable to update ticket workflow. Please try again."
+      );
     } finally {
       setWorkflowLoading(false);
     }
   };
 
-  const handleAddNote = async (event) => {
+
+  // ==========================================================
+  // ADD INTERNAL NOTE
+  // ==========================================================
+
+  const handleAddNote = async (
+    event
+  ) => {
     event.preventDefault();
 
-    if (!canManageTicket || !note.trim()) {
+    if (
+      !canManageTicket ||
+      !note.trim()
+    ) {
       return;
     }
 
@@ -410,31 +765,52 @@ function TicketDetails({
     setError("");
 
     try {
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
 
       if (!token) {
-        throw new Error("Authentication required");
+        handleSessionExpired();
+        return;
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/tickets/${ticket._id}/activity`,
+        `${API_URL}/tickets/${ticket._id}/activity`,
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+            Authorization:
+              `Bearer ${token}`,
           },
           body: JSON.stringify({
-            description: note,
+            description:
+              note.trim(),
           }),
         }
       );
 
-      const data = await response.json();
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
 
       if (!response.ok) {
+        const message =
+          await getApiErrorMessage(
+            response,
+            "Unable to add internal note."
+          );
+
+        throw new Error(message);
+      }
+
+      const data =
+        await response.json();
+
+      if (!data || !data._id) {
         throw new Error(
-          data.message || "Failed to add internal note"
+          "The server returned an unexpected activity response."
         );
       }
 
@@ -443,15 +819,31 @@ function TicketDetails({
         ...previous,
       ]);
 
+      setActivityError("");
       setNote("");
     } catch (err) {
-      setError(err.message);
+      console.error(
+        "Add internal note error:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Unable to add internal note. Please try again."
+      );
     } finally {
       setNoteSaving(false);
     }
   };
 
-  const handleAddComment = async (event) => {
+
+  // ==========================================================
+  // ADD PUBLIC COMMENT
+  // ==========================================================
+
+  const handleAddComment = async (
+    event
+  ) => {
     event.preventDefault();
 
     if (!comment.trim()) {
@@ -462,31 +854,52 @@ function TicketDetails({
     setError("");
 
     try {
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token");
 
       if (!token) {
-        throw new Error("Authentication required");
+        handleSessionExpired();
+        return;
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/tickets/${ticket._id}/comments`,
+        `${API_URL}/tickets/${ticket._id}/comments`,
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
+            Authorization:
+              `Bearer ${token}`,
           },
           body: JSON.stringify({
-            message: comment,
+            message:
+              comment.trim(),
           }),
         }
       );
 
-      const data = await response.json();
+      if (response.status === 401) {
+        handleSessionExpired();
+        return;
+      }
 
       if (!response.ok) {
+        const message =
+          await getApiErrorMessage(
+            response,
+            "Unable to send message."
+          );
+
+        throw new Error(message);
+      }
+
+      const data =
+        await response.json();
+
+      if (!data || !data._id) {
         throw new Error(
-          data.message || "Failed to add comment"
+          "The server returned an unexpected comment response."
         );
       }
 
@@ -495,15 +908,35 @@ function TicketDetails({
         data,
       ]);
 
+      setCommentsError("");
       setComment("");
     } catch (err) {
-      setError(err.message);
+      console.error(
+        "Add public comment error:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Unable to send message. Please try again."
+      );
     } finally {
       setCommentSaving(false);
     }
   };
 
-  const sla = getSlaStatus(ticket);
+
+  // ==========================================================
+  // SLA
+  // ==========================================================
+
+  const sla =
+    getSlaStatus(ticket);
+
+
+  // ==========================================================
+  // RENDER
+  // ==========================================================
 
   return (
     <section className="ticket-details-page">
@@ -511,32 +944,56 @@ function TicketDetails({
       <button
         className="back-button"
         onClick={onBack}
+        disabled={
+          saving ||
+          deleting ||
+          workflowLoading ||
+          noteSaving ||
+          commentSaving
+        }
       >
         ← Back to Tickets
       </button>
 
+
+      {/* ======================================================
+          HEADER
+      ====================================================== */}
+
       <div className="ticket-details-header">
 
         <div>
+
           <p className="eyebrow">
             SERVICE DESK / TICKET
           </p>
 
           <div className="ticket-id">
-            #{ticket._id.slice(-6).toUpperCase()}
+            #
+            {ticket._id
+              .slice(-6)
+              .toUpperCase()}
           </div>
 
-          <h2>{ticket.title}</h2>
+          <h2>
+            {ticket.title}
+          </h2>
 
           <p className="ticket-created">
             Created{" "}
-            {new Date(ticket.createdAt).toLocaleString()}
+            {new Date(
+              ticket.createdAt
+            ).toLocaleString()}
           </p>
+
         </div>
+
 
         <div className="ticket-header-actions">
 
-          {/* Workflow buttons - staff only */}
+          {/* ==================================================
+              START WORK
+          ================================================== */}
 
           {canManageTicket &&
             !isEditing &&
@@ -545,11 +1002,14 @@ function TicketDetails({
                 className="workflow-button primary"
                 onClick={() =>
                   handleWorkflowAction({
-                    status: "In Progress",
+                    status:
+                      "In Progress",
                   })
                 }
                 disabled={
-                  workflowLoading || deleting
+                  workflowLoading ||
+                  deleting ||
+                  saving
                 }
               >
                 {workflowLoading
@@ -558,26 +1018,49 @@ function TicketDetails({
               </button>
             )}
 
+
+          {/* ==================================================
+              RESOLVE
+          ================================================== */}
+
           {canManageTicket &&
             !isEditing &&
-            ticket.status === "In Progress" && (
+            ticket.status ===
+              "In Progress" && (
               <button
                 className="workflow-btn resolve"
                 onClick={() => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    status: "Resolved",
-                  }));
+                  setError("");
+
+                  setFormData(
+                    (previous) => ({
+                      ...previous,
+                      status:
+                        "Resolved",
+                    })
+                  );
+
                   setIsEditing(true);
                 }}
+                disabled={
+                  workflowLoading ||
+                  deleting ||
+                  saving
+                }
               >
                 Resolve
               </button>
             )}
 
+
+          {/* ==================================================
+              CLOSE
+          ================================================== */}
+
           {canManageTicket &&
             !isEditing &&
-            ticket.status === "Resolved" && (
+            ticket.status ===
+              "Resolved" && (
               <button
                 className="workflow-button primary"
                 onClick={() =>
@@ -586,7 +1069,9 @@ function TicketDetails({
                   })
                 }
                 disabled={
-                  workflowLoading || deleting
+                  workflowLoading ||
+                  deleting ||
+                  saving
                 }
               >
                 {workflowLoading
@@ -595,9 +1080,15 @@ function TicketDetails({
               </button>
             )}
 
+
+          {/* ==================================================
+              REOPEN
+          ================================================== */}
+
           {canManageTicket &&
             !isEditing &&
-            ticket.status === "Resolved" && (
+            ticket.status ===
+              "Resolved" && (
               <button
                 className="workflow-button reopen"
                 onClick={() =>
@@ -606,7 +1097,9 @@ function TicketDetails({
                   })
                 }
                 disabled={
-                  workflowLoading || deleting
+                  workflowLoading ||
+                  deleting ||
+                  saving
                 }
               >
                 {workflowLoading
@@ -615,14 +1108,19 @@ function TicketDetails({
               </button>
             )}
 
-          {/* Delete - Administrator only */}
+
+          {/* ==================================================
+              DELETE
+          ================================================== */}
 
           {canDelete && (
             <button
               className="delete-ticket-button"
               onClick={handleDelete}
               disabled={
-                workflowLoading || deleting
+                workflowLoading ||
+                deleting ||
+                saving
               }
             >
               {deleting
@@ -631,15 +1129,23 @@ function TicketDetails({
             </button>
           )}
 
-          {/* Edit */}
+
+          {/* ==================================================
+              EDIT
+          ================================================== */}
 
           <button
             className="edit-ticket-button"
-            onClick={() =>
-              setIsEditing(!isEditing)
-            }
+            onClick={() => {
+              setError("");
+              setIsEditing(
+                !isEditing
+              );
+            }}
             disabled={
-              workflowLoading || deleting
+              workflowLoading ||
+              deleting ||
+              saving
             }
           >
             {isEditing
@@ -651,27 +1157,48 @@ function TicketDetails({
 
       </div>
 
+
+      {/* ======================================================
+          GENERAL ERROR
+      ====================================================== */}
+
       {error && (
-        <div className="form-error">
+        <div
+          className="form-error"
+          role="alert"
+        >
           {error}
         </div>
       )}
 
+
+      {/* ======================================================
+          VIEW MODE
+      ====================================================== */}
+
       {!isEditing ? (
 
         <>
+
+          {/* ==================================================
+              TICKET DETAILS
+          ================================================== */}
 
           <div className="ticket-details-grid">
 
             <div className="details-card main-details">
 
               <div className="details-card-header">
-                <h3>Ticket Information</h3>
+                <h3>
+                  Ticket Information
+                </h3>
               </div>
 
               <div className="description-section">
 
-                <label>Description</label>
+                <label>
+                  Description
+                </label>
 
                 <p>
                   {ticket.description}
@@ -681,94 +1208,141 @@ function TicketDetails({
 
             </div>
 
+
+            {/* =================================================
+                TICKET PROPERTIES
+            ================================================= */}
+
             <div className="details-card">
 
               <div className="details-card-header">
-                <h3>Ticket Properties</h3>
+                <h3>
+                  Ticket Properties
+                </h3>
               </div>
 
               <div className="property-list">
 
                 <div className="property">
-                  <span>SLA</span>
+
+                  <span>
+                    SLA
+                  </span>
 
                   <strong
                     className={`sla-badge ${sla.status
                       .toLowerCase()
-                      .replace(" ", "-")}`}
+                      .replace(
+                        " ",
+                        "-"
+                      )}`}
                   >
                     {sla.label}
                   </strong>
+
                 </div>
 
+
                 <div className="property">
-                  <span>Resolution Target</span>
+
+                  <span>
+                    Resolution Target
+                  </span>
 
                   <strong>
                     {sla.resolutionDeadline
                       ? sla.resolutionDeadline.toLocaleString()
                       : "Unavailable"}
                   </strong>
+
                 </div>
 
+
                 <div className="property">
-                  <span>Priority</span>
+
+                  <span>
+                    Priority
+                  </span>
 
                   <strong
                     className={`priority ${ticket.priority
                       .toLowerCase()
-                      .replace(" ", "-")}`}
+                      .replace(
+                        " ",
+                        "-"
+                      )}`}
                   >
                     {ticket.priority}
                   </strong>
+
                 </div>
 
+
                 <div className="property">
-                  <span>Category</span>
+
+                  <span>
+                    Category
+                  </span>
 
                   <strong>
                     {ticket.category}
                   </strong>
+
                 </div>
 
+
                 <div className="property">
-                  <span>Created By</span>
+
+                  <span>
+                    Created By
+                  </span>
 
                   <strong className="assigned-user-display">
 
                     {ticket.createdBy ? (
                       <>
+
                         <span>
                           {ticket.createdBy.name}
                         </span>
 
                         <small>
-                          {ticket.createdBy.role} ·{" "}
+                          {ticket.createdBy.role}{" "}
+                          ·{" "}
                           {ticket.createdBy.department}
                         </small>
+
                       </>
                     ) : (
                       "Not Recorded"
                     )}
 
                   </strong>
+
                 </div>
 
+
                 <div className="property">
-                  <span>Assigned To</span>
+
+                  <span>
+                    Assigned To
+                  </span>
 
                   <strong className="assigned-user-display">
 
                     {ticket.assignedToUser ? (
                       <>
+
                         <span>
                           {ticket.assignedToUser.name}
                         </span>
 
                         <small>
-                          {ticket.assignedToUser.role} ·{" "}
+                          {ticket.assignedToUser.role}{" "}
+                          ·{" "}
                           {ticket.assignedToUser.department}
                         </small>
+
                       </>
                     ) : (
                       ticket.assignedTo ||
@@ -776,6 +1350,7 @@ function TicketDetails({
                     )}
 
                   </strong>
+
                 </div>
 
               </div>
@@ -784,21 +1359,30 @@ function TicketDetails({
 
           </div>
 
-          {/* Resolution Information */}
+
+          {/* ==================================================
+              RESOLUTION INFORMATION
+          ================================================== */}
 
           <div className="details-card resolution-details-card">
 
             <div className="details-card-header">
 
               <div>
-                <h3>Resolution Information</h3>
+
+                <h3>
+                  Resolution Information
+                </h3>
 
                 <span>
-                  Details about how and when this ticket was resolved
+                  Details about how and when
+                  this ticket was resolved
                 </span>
+
               </div>
 
             </div>
+
 
             <div className="resolution-info-grid">
 
@@ -816,6 +1400,7 @@ function TicketDetails({
 
               </div>
 
+
               <div className="resolution-info-item">
 
                 <span>
@@ -823,10 +1408,12 @@ function TicketDetails({
                 </span>
 
                 <strong>
-                  {ticket.resolvedBy?.name || "—"}
+                  {ticket.resolvedBy?.name ||
+                    "—"}
                 </strong>
 
               </div>
+
 
               <div className="resolution-info-item">
 
@@ -848,7 +1435,10 @@ function TicketDetails({
 
           </div>
 
-          {/* Staff Activity + Internal Notes */}
+
+          {/* ==================================================
+              STAFF ACTIVITY
+          ================================================== */}
 
           {canManageTicket && (
             <div className="activity-card">
@@ -856,7 +1446,9 @@ function TicketDetails({
               <div className="details-card-header">
 
                 <div>
-                  <h3>Activity</h3>
+                  <h3>
+                    Activity
+                  </h3>
                 </div>
 
                 <span>
@@ -865,74 +1457,104 @@ function TicketDetails({
 
               </div>
 
+
+              {activityError && (
+                <div
+                  className="form-error"
+                  role="alert"
+                >
+                  {activityError}
+                </div>
+              )}
+
+
               <div className="activity-list">
 
                 {activityLoading ? (
                   <div className="activity-loading">
                     Loading activity...
                   </div>
-                ) : activities.length === 0 ? (
+                ) : activities.length ===
+                  0 ? (
                   <div className="activity-empty">
-                    No activity recorded yet.
+                    No activity recorded
+                    yet.
                   </div>
                 ) : (
-                  activities.map((activity) => (
-                    <div
-                      className={`activity-item ${
-                        activity.action ===
-                        "Internal Note"
-                          ? "internal-note-item"
-                          : ""
-                      }`}
-                      key={activity._id}
-                    >
+                  activities.map(
+                    (activity) => (
+                      <div
+                        className={`activity-item ${
+                          activity.action ===
+                          "Internal Note"
+                            ? "internal-note-item"
+                            : ""
+                        }`}
+                        key={
+                          activity._id
+                        }
+                      >
 
-                      <div className="activity-marker">
-                        <span></span>
-                      </div>
+                        <div className="activity-marker">
+                          <span></span>
+                        </div>
 
-                      <div className="activity-content">
+                        <div className="activity-content">
 
-                        <div className="activity-top">
+                          <div className="activity-top">
 
-                          <strong>
-                            {activity.action}
-                          </strong>
+                            <strong>
+                              {
+                                activity.action
+                              }
+                            </strong>
 
-                          <time>
-                            {new Date(
-                              activity.createdAt
-                            ).toLocaleString()}
-                          </time>
+                            <time>
+                              {new Date(
+                                activity.createdAt
+                              ).toLocaleString()}
+                            </time>
+
+                          </div>
+
+                          <p>
+                            {
+                              activity.description
+                            }
+                          </p>
+
+                          <small>
+                            By{" "}
+                            {
+                              activity.performedBy
+                            }
+                          </small>
 
                         </div>
 
-                        <p>
-                          {activity.description}
-                        </p>
-
-                        <small>
-                          By {activity.performedBy}
-                        </small>
-
                       </div>
-
-                    </div>
-                  ))
+                    )
+                  )
                 )}
 
               </div>
 
-              {/* Internal Notes - IT Staff Only */}
+
+              {/* =================================================
+                  INTERNAL NOTES
+              ================================================= */}
 
               <form
                 className="internal-note-form"
-                onSubmit={handleAddNote}
+                onSubmit={
+                  handleAddNote
+                }
               >
 
                 <div className="internal-note-heading">
 
                   <div>
+
                     <strong>
                       Add Internal Note
                     </strong>
@@ -940,19 +1562,29 @@ function TicketDetails({
                     <small>
                       (Visible to IT staff)
                     </small>
+
                   </div>
 
                 </div>
 
+
                 <textarea
                   value={note}
                   onChange={(event) =>
-                    setNote(event.target.value)
+                    setNote(
+                      event.target.value
+                    )
                   }
                   placeholder="Add troubleshooting details, investigation notes, or follow-up information..."
                   maxLength={1000}
                   rows="4"
+                  disabled={
+                    noteSaving ||
+                    workflowLoading ||
+                    deleting
+                  }
                 />
+
 
                 <div className="internal-note-footer">
 
@@ -964,7 +1596,10 @@ function TicketDetails({
                     type="submit"
                     className="add-note-button"
                     disabled={
-                      noteSaving || !note.trim()
+                      noteSaving ||
+                      !note.trim() ||
+                      workflowLoading ||
+                      deleting
                     }
                   >
                     {noteSaving
@@ -979,20 +1614,26 @@ function TicketDetails({
             </div>
           )}
 
-          {/* Public Conversation - Staff + Requester */}
+
+          {/* ==================================================
+              PUBLIC CONVERSATION
+          ================================================== */}
 
           <div className="public-conversation">
 
             <div className="public-conversation-header">
 
               <div>
+
                 <h3>
                   Public Conversation
                 </h3>
 
                 <span>
-                  Messages visible to the requester and IT staff
+                  Messages visible to the
+                  requester and IT staff
                 </span>
+
               </div>
 
               <span className="conversation-badge">
@@ -1001,73 +1642,109 @@ function TicketDetails({
 
             </div>
 
+
+            {commentsError && (
+              <div
+                className="form-error"
+                role="alert"
+              >
+                {commentsError}
+              </div>
+            )}
+
+
             <div className="conversation-list">
 
               {commentsLoading ? (
                 <div className="conversation-empty">
                   Loading conversation...
                 </div>
-              ) : comments.length === 0 ? (
+              ) : comments.length ===
+                0 ? (
                 <div className="conversation-empty">
                   No public messages yet.
                 </div>
               ) : (
-                comments.map((item) => (
-                  <div
-                    className={`conversation-message ${
-                      item.authorRole === "Requester"
-                        ? "requester-message"
-                        : "staff-message"
-                    }`}
-                    key={item._id}
-                  >
+                comments.map(
+                  (item) => (
+                    <div
+                      className={`conversation-message ${
+                        item.authorRole ===
+                        "Requester"
+                          ? "requester-message"
+                          : "staff-message"
+                      }`}
+                      key={
+                        item._id
+                      }
+                    >
 
-                    <div className="conversation-message-header">
+                      <div className="conversation-message-header">
 
-                      <div>
+                        <div>
 
-                        <strong>
-                          {item.authorName}
-                        </strong>
+                          <strong>
+                            {
+                              item.authorName
+                            }
+                          </strong>
 
-                        <span>
-                          {item.authorRole}
-                        </span>
+                          <span>
+                            {
+                              item.authorRole
+                            }
+                          </span>
+
+                        </div>
+
+                        <time>
+                          {new Date(
+                            item.createdAt
+                          ).toLocaleString()}
+                        </time>
 
                       </div>
 
-                      <time>
-                        {new Date(
-                          item.createdAt
-                        ).toLocaleString()}
-                      </time>
+                      <p>
+                        {item.message}
+                      </p>
 
                     </div>
-
-                    <p>
-                      {item.message}
-                    </p>
-
-                  </div>
-                ))
+                  )
+                )
               )}
 
             </div>
 
+
+            {/* =================================================
+                PUBLIC COMMENT FORM
+            ================================================= */}
+
             <form
               className="public-comment-form"
-              onSubmit={handleAddComment}
+              onSubmit={
+                handleAddComment
+              }
             >
 
               <textarea
                 value={comment}
                 onChange={(event) =>
-                  setComment(event.target.value)
+                  setComment(
+                    event.target.value
+                  )
                 }
                 placeholder="Write a message to the requester or IT support..."
                 maxLength={2000}
                 rows="4"
+                disabled={
+                  commentSaving ||
+                  workflowLoading ||
+                  deleting
+                }
               />
+
 
               <div className="public-comment-footer">
 
@@ -1080,7 +1757,9 @@ function TicketDetails({
                   className="public-comment-button"
                   disabled={
                     commentSaving ||
-                    !comment.trim()
+                    !comment.trim() ||
+                    workflowLoading ||
+                    deleting
                   }
                 >
                   {commentSaving
@@ -1097,6 +1776,10 @@ function TicketDetails({
         </>
 
       ) : (
+
+        /* ======================================================
+           EDIT MODE
+        ====================================================== */
 
         <form
           className="ticket-edit-card"
@@ -1117,9 +1800,12 @@ function TicketDetails({
 
           </div>
 
+
           <div className="edit-form">
 
-            {/* Title - Everyone Can Edit */}
+            {/* =================================================
+                TITLE
+            ================================================= */}
 
             <div className="form-group">
 
@@ -1130,14 +1816,22 @@ function TicketDetails({
               <input
                 type="text"
                 name="title"
-                value={formData.title}
-                onChange={handleChange}
+                value={
+                  formData.title
+                }
+                onChange={
+                  handleChange
+                }
                 required
+                disabled={saving}
               />
 
             </div>
 
-            {/* Description - Everyone Can Edit */}
+
+            {/* =================================================
+                DESCRIPTION
+            ================================================= */}
 
             <div className="form-group">
 
@@ -1147,21 +1841,32 @@ function TicketDetails({
 
               <textarea
                 name="description"
-                value={formData.description}
-                onChange={handleChange}
+                value={
+                  formData.description
+                }
+                onChange={
+                  handleChange
+                }
                 rows="6"
                 maxLength={1000}
                 required
+                disabled={saving}
               />
 
             </div>
 
-            {/* Staff-only Controls */}
+
+            {/* =================================================
+                STAFF CONTROLS
+            ================================================= */}
 
             {canManageTicket && (
               <>
 
-                {formData.status === "Resolved" && (
+                {/* Resolution Summary */}
+
+                {formData.status ===
+                  "Resolved" && (
                   <div className="form-group resolution-form-group">
 
                     <label>
@@ -1169,7 +1874,9 @@ function TicketDetails({
                     </label>
 
                     <small>
-                      (Required when resolving a ticket.)
+                      (Required when
+                      resolving a
+                      ticket.)
                     </small>
 
                     <textarea
@@ -1177,15 +1884,23 @@ function TicketDetails({
                       value={
                         formData.resolutionSummary
                       }
-                      onChange={handleChange}
+                      onChange={
+                        handleChange
+                      }
                       rows="4"
                       maxLength={1000}
                       placeholder="Describe how the issue was resolved..."
                       required
+                      disabled={
+                        saving
+                      }
                     />
 
                   </div>
                 )}
+
+
+                {/* Status + Priority */}
 
                 <div className="form-row">
 
@@ -1197,8 +1912,15 @@ function TicketDetails({
 
                     <select
                       name="status"
-                      value={formData.status}
-                      onChange={handleChange}
+                      value={
+                        formData.status
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      disabled={
+                        saving
+                      }
                     >
 
                       <option value="Open">
@@ -1225,6 +1947,7 @@ function TicketDetails({
 
                   </div>
 
+
                   <div className="form-group">
 
                     <label>
@@ -1233,8 +1956,15 @@ function TicketDetails({
 
                     <select
                       name="priority"
-                      value={formData.priority}
-                      onChange={handleChange}
+                      value={
+                        formData.priority
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      disabled={
+                        saving
+                      }
                     >
 
                       <option value="Low">
@@ -1259,6 +1989,9 @@ function TicketDetails({
 
                 </div>
 
+
+                {/* Category + Assignment */}
+
                 <div className="form-row">
 
                   <div className="form-group">
@@ -1269,8 +2002,15 @@ function TicketDetails({
 
                     <select
                       name="category"
-                      value={formData.category}
-                      onChange={handleChange}
+                      value={
+                        formData.category
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      disabled={
+                        saving
+                      }
                     >
 
                       <option value="Hardware">
@@ -1297,43 +2037,82 @@ function TicketDetails({
 
                   </div>
 
+
                   <div className="form-group">
 
                     <label>
                       Assigned To
                     </label>
 
+
+                    {usersError && (
+                      <div
+                        className="form-error"
+                        role="alert"
+                      >
+                        {usersError}
+                      </div>
+                    )}
+
+
                     <select
                       name="assignedToUser"
                       value={
                         formData.assignedToUser
                       }
-                      onChange={handleChange}
+                      onChange={
+                        handleChange
+                      }
+                      disabled={
+                        usersLoading ||
+                        usersError ||
+                        saving
+                      }
                     >
 
                       <option value="">
                         {usersLoading
                           ? "Loading users..."
+                          : usersError
+                          ? "Users unavailable"
                           : "Unassigned"}
                       </option>
 
+
                       {!usersLoading &&
-                        users.map((user) => (
-                          <option
-                            key={user._id}
-                            value={user._id}
-                          >
-                            {user.name} —{" "}
-                            {user.role} ·{" "}
-                            {user.department}
-                          </option>
-                        ))}
+                        !usersError &&
+                        users.map(
+                          (user) => (
+                            <option
+                              key={
+                                user._id
+                              }
+                              value={
+                                user._id
+                              }
+                            >
+                              {
+                                user.name
+                              }{" "}
+                              —{" "}
+                              {
+                                user.role
+                              }{" "}
+                              ·{" "}
+                              {
+                                user.department
+                              }
+                            </option>
+                          )
+                        )}
 
                     </select>
 
+
                     <small>
-                      Select the person responsible
-                      for this ticket.
+                      Select the person
+                      responsible for
+                      this ticket.
                     </small>
 
                   </div>
@@ -1343,7 +2122,10 @@ function TicketDetails({
               </>
             )}
 
-            {/* Requester Information */}
+
+            {/* =================================================
+                REQUESTER INFORMATION
+            ================================================= */}
 
             {isRequester && (
               <div className="requester-edit-info">
@@ -1360,6 +2142,7 @@ function TicketDetails({
 
                 </div>
 
+
                 <div className="property">
 
                   <span>
@@ -1372,6 +2155,7 @@ function TicketDetails({
 
                 </div>
 
+
                 <div className="property">
 
                   <span>
@@ -1383,6 +2167,7 @@ function TicketDetails({
                   </strong>
 
                 </div>
+
 
                 <div className="property">
 
@@ -1399,16 +2184,24 @@ function TicketDetails({
 
                 </div>
 
+
                 <small>
-                  Status, priority, category, and
-                  assignment can only be changed by
-                  IT staff.
+                  Status, priority,
+                  category, and
+                  assignment can only
+                  be changed by IT
+                  staff.
                 </small>
 
               </div>
             )}
 
           </div>
+
+
+          {/* ==================================================
+              EDIT ACTIONS
+          ================================================== */}
 
           <div className="edit-actions">
 
@@ -1418,9 +2211,11 @@ function TicketDetails({
               onClick={() =>
                 setIsEditing(false)
               }
+              disabled={saving}
             >
               Cancel
             </button>
+
 
             <button
               type="submit"

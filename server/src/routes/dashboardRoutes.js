@@ -242,8 +242,7 @@ router.get(
       };
 
       /*
-        We calculate SLA status using the same
-        basic rules as the frontend.
+        SLA status rules:
 
         Completed:
           Ticket has been resolved/closed
@@ -292,7 +291,7 @@ router.get(
 
         /*
           For resolved/closed tickets,
-          compare the actual resolution time
+          compare actual resolution time
           against the SLA deadline.
         */
 
@@ -321,9 +320,9 @@ router.get(
           }
 
           /*
-            If the ticket is completed but
-            does not have a resolution date,
-            we cannot reliably determine SLA.
+            Completed ticket without a
+            resolution date cannot reliably
+            determine SLA.
           */
           slaCounts.Unknown++;
           return;
@@ -331,7 +330,7 @@ router.get(
 
         /*
           Open / In Progress / Reopen tickets
-        are evaluated against the current time.
+          are evaluated against current time.
         */
 
         const remainingMinutes =
@@ -394,7 +393,7 @@ router.get(
          RESPONSE
       ===================================== */
 
-      res.status(200).json({
+      return res.status(200).json({
         summary: {
           totalTickets,
           openTickets,
@@ -422,10 +421,9 @@ router.get(
         error
       );
 
-      res.status(500).json({
+      return res.status(500).json({
         message:
           "Failed to fetch dashboard analytics",
-        error: error.message,
       });
     }
   }
