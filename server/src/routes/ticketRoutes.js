@@ -4,6 +4,7 @@ const protect = require("../middleware/authMiddleware");
 const TicketActivity = require("../models/TicketActivity");
 const authorize = require("../middleware/roleMiddleware");
 const User = require("../models/User");
+const TicketComment = require("../models/TicketComment");
 
 const router = express.Router();
 
@@ -168,6 +169,126 @@ router.post(
   }
 );
 
+// Get public comments for a ticket
+router.get(
+  "/:id/comments",
+  protect,
+  authorize(
+    "Administrator",
+    "IT Support Agent",
+    "Manager",
+    "Requester"
+  ),
+  async (req, res) => {
+    try {
+      const ticket = await Ticket.findById(req.params.id);
+
+      if (!ticket) {
+        return res.status(404).json({
+          message: "Ticket not found",
+        });
+      }
+
+      // Requesters can only view comments on their own tickets
+      if (
+        req.user.role === "Requester" &&
+        ticket.requester !== req.user.name
+      ) {
+        return res.status(403).json({
+          message:
+            "You do not have permission to view these comments",
+        });
+      }
+
+      const comments = await TicketComment.find({
+        ticket: ticket._id,
+      })
+        .populate(
+          "author",
+          "name email role department"
+        )
+        .sort({ createdAt: 1 });
+
+      res.status(200).json(comments);
+    } catch (error) {
+      res.status(400).json({
+        message: "Failed to fetch ticket comments",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Add a public comment to a ticket
+router.post(
+  "/:id/comments",
+  protect,
+  authorize(
+    "Administrator",
+    "IT Support Agent",
+    "Manager",
+    "Requester"
+  ),
+  async (req, res) => {
+    try {
+      const { message } = req.body;
+
+      if (!message || !message.trim()) {
+        return res.status(400).json({
+          message: "Comment cannot be empty",
+        });
+      }
+
+      if (message.trim().length > 2000) {
+        return res.status(400).json({
+          message:
+            "Comment cannot exceed 2000 characters",
+        });
+      }
+
+      const ticket = await Ticket.findById(req.params.id);
+
+      if (!ticket) {
+        return res.status(404).json({
+          message: "Ticket not found",
+        });
+      }
+
+      // Requesters can only comment on their own tickets
+      if (
+        req.user.role === "Requester" &&
+        ticket.requester !== req.user.name
+      ) {
+        return res.status(403).json({
+          message:
+            "You can only comment on your own tickets",
+        });
+      }
+
+      const comment = await TicketComment.create({
+        ticket: ticket._id,
+        author: req.user.id,
+        authorName: req.user.name,
+        authorRole: req.user.role,
+        message: message.trim(),
+      });
+
+      const populatedComment =
+        await TicketComment.findById(comment._id).populate(
+          "author",
+          "name email role department"
+        );
+
+      res.status(201).json(populatedComment);
+    } catch (error) {
+      res.status(400).json({
+        message: "Failed to add public comment",
+        error: error.message,
+      });
+    }
+  }
+);
+
 // Get one ticket
 router.get(
   "/:id",
@@ -322,15 +443,22 @@ if (
 
       const changes = [];
 
-      // Status change
-      if (
-        updateData.status &&
-        updateData.status !== existingTicket.status
-      ) {
-        changes.push(
-          `Status changed from ${existingTicket.status} to ${updateData.status}.`
-        );
-      }
+ // Status change
+if (
+  updateData.status &&
+  updateData.status !== existingTicket.status
+) {
+  if (
+    existingTicket.status === "Resolved" &&
+    updateData.status === "Reopen"
+  ) {
+    changes.push("Ticket was reopened.");
+  } else {
+    changes.push(
+      `Status changed from ${existingTicket.status} to ${updateData.status}.`
+    );
+  }
+}
 
       // Priority change
       if (
@@ -453,19 +581,22 @@ if (
         await TicketActivity.create({
           ticket: ticket._id,
           action:
-            changes.length === 1 &&
-            changes[0].startsWith("Status changed")
-              ? "Status Changed"
-              : changes.length === 1 &&
-                changes[0].startsWith("Priority changed")
-              ? "Priority Changed"
-              : changes.length === 1 &&
-                changes[0].startsWith("Category changed")
-              ? "Category Changed"
-              : changes.length === 1 &&
-                changes[0].startsWith("Assigned")
-              ? "Assigned"
-              : "Updated",
+          changes.length === 1 &&
+          changes[0] === "Ticket was reopened."
+            ? "Reopened"
+            : changes.length === 1 &&
+              changes[0].startsWith("Status changed")
+            ? "Status Changed"
+            : changes.length === 1 &&
+              changes[0].startsWith("Priority changed")
+            ? "Priority Changed"
+            : changes.length === 1 &&
+              changes[0].startsWith("Category changed")
+            ? "Category Changed"
+            : changes.length === 1 &&
+              changes[0].startsWith("Assigned")
+            ? "Assigned"
+            : "Updated",
           description: changes.join(" "),
           performedBy: req.user.name,
         });

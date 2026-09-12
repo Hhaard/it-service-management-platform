@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const ticketActivitySchema = new mongoose.Schema(
+const ticketCommentSchema = new mongoose.Schema(
   {
     ticket: {
       type: mongoose.Schema.Types.ObjectId,
@@ -8,31 +8,29 @@ const ticketActivitySchema = new mongoose.Schema(
       required: true,
     },
 
-    action: {
-      type: String,
-      enum: [
-        "Created",
-        "Updated",
-        "Assigned",
-        "Status Changed",
-        "Priority Changed",
-        "Category Changed",
-        "Reopened",
-        "Internal Note",
-      ],
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
     },
 
-    description: {
+    authorName: {
       type: String,
       required: true,
       trim: true,
     },
 
-    performedBy: {
+    authorRole: {
       type: String,
-      default: "Haard Patel",
+      required: true,
       trim: true,
+    },
+
+    message: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 2000,
     },
   },
   {
@@ -41,6 +39,6 @@ const ticketActivitySchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model(
-  "TicketActivity",
-  ticketActivitySchema
+  "TicketComment",
+  ticketCommentSchema
 );

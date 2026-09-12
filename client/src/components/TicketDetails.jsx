@@ -28,6 +28,7 @@ function TicketDetails({
     requester: ticket.requester,
     assignedTo: ticket.assignedTo || "Unassigned",
     assignedToUser: ticket.assignedToUser?._id || "",
+    resolutionSummary: ticket.resolutionSummary || "",
   });
 
   const [saving, setSaving] = useState(false);
@@ -42,6 +43,11 @@ function TicketDetails({
   const [note, setNote] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
 
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [comment, setComment] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
+
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(true);
 
@@ -55,6 +61,7 @@ function TicketDetails({
       requester: ticket.requester,
       assignedTo: ticket.assignedTo || "Unassigned",
       assignedToUser: ticket.assignedToUser?._id || "",
+      resolutionSummary: ticket.resolutionSummary || "",
     });
   }, [ticket]);
 
@@ -99,6 +106,11 @@ function TicketDetails({
     }
   }, [canManageTicket]);
 
+  /*
+   * Fetch ticket activity only for IT staff.
+   * Requesters do not have permission to access
+   * the activity/internal-notes endpoint.
+   */
   useEffect(() => {
     const fetchActivities = async () => {
       try {
@@ -133,10 +145,63 @@ function TicketDetails({
       }
     };
 
-    fetchActivities();
+    if (canManageTicket) {
+      fetchActivities();
+    } else {
+      setActivities([]);
+      setActivityLoading(false);
+    }
+  }, [ticket._id, canManageTicket]);
+
+  /*
+   * Public comments are available to both staff
+   * and Requesters who have access to the ticket.
+   */
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        setCommentsLoading(true);
+
+        const token = localStorage.getItem("token");
+
+        if (!token) {
+          setComments([]);
+          return;
+        }
+
+        const response = await fetch(
+          `http://localhost:5000/api/tickets/${ticket._id}/comments`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch ticket comments");
+        }
+
+        const data = await response.json();
+        setComments(data);
+      } catch (err) {
+        console.error(
+          "Fetch ticket comments error:",
+          err
+        );
+      } finally {
+        setCommentsLoading(false);
+      }
+    };
+
+    fetchComments();
   }, [ticket._id]);
 
   const refreshActivities = async () => {
+    if (!canManageTicket) {
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
 
@@ -226,7 +291,9 @@ function TicketDetails({
 
       onTicketUpdated(data);
 
-      await refreshActivities();
+      if (canManageTicket) {
+        await refreshActivities();
+      }
 
       setIsEditing(false);
     } catch (err) {
@@ -384,6 +451,58 @@ function TicketDetails({
     }
   };
 
+  const handleAddComment = async (event) => {
+    event.preventDefault();
+
+    if (!comment.trim()) {
+      return;
+    }
+
+    setCommentSaving(true);
+    setError("");
+
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const response = await fetch(
+        `http://localhost:5000/api/tickets/${ticket._id}/comments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            message: comment,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to add comment"
+        );
+      }
+
+      setComments((previous) => [
+        ...previous,
+        data,
+      ]);
+
+      setComment("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCommentSaving(false);
+    }
+  };
+
   const sla = getSlaStatus(ticket);
 
   return (
@@ -418,6 +537,7 @@ function TicketDetails({
         <div className="ticket-header-actions">
 
           {/* Workflow buttons - staff only */}
+
           {canManageTicket &&
             !isEditing &&
             ticket.status === "Open" && (
@@ -442,19 +562,16 @@ function TicketDetails({
             !isEditing &&
             ticket.status === "In Progress" && (
               <button
-                className="workflow-button success"
-                onClick={() =>
-                  handleWorkflowAction({
+                className="workflow-btn resolve"
+                onClick={() => {
+                  setFormData((prev) => ({
+                    ...prev,
                     status: "Resolved",
-                  })
-                }
-                disabled={
-                  workflowLoading || deleting
-                }
+                  }));
+                  setIsEditing(true);
+                }}
               >
-                {workflowLoading
-                  ? "Updating..."
-                  : "Resolve"}
+                Resolve
               </button>
             )}
 
@@ -478,7 +595,28 @@ function TicketDetails({
               </button>
             )}
 
+          {canManageTicket &&
+            !isEditing &&
+            ticket.status === "Resolved" && (
+              <button
+                className="workflow-button reopen"
+                onClick={() =>
+                  handleWorkflowAction({
+                    status: "Reopen",
+                  })
+                }
+                disabled={
+                  workflowLoading || deleting
+                }
+              >
+                {workflowLoading
+                  ? "Updating..."
+                  : "Reopen Ticket"}
+              </button>
+            )}
+
           {/* Delete - Administrator only */}
+
           {canDelete && (
             <button
               className="delete-ticket-button"
@@ -494,6 +632,7 @@ function TicketDetails({
           )}
 
           {/* Edit */}
+
           <button
             className="edit-ticket-button"
             onClick={() =>
@@ -521,6 +660,7 @@ function TicketDetails({
       {!isEditing ? (
 
         <>
+
           <div className="ticket-details-grid">
 
             <div className="details-card main-details">
@@ -592,29 +732,33 @@ function TicketDetails({
                 </div>
 
                 <div className="property">
-  <span>Created By</span>
+                  <span>Created By</span>
 
-  <strong className="assigned-user-display">
-    {ticket.createdBy ? (
-      <>
-        <span>
-          {ticket.createdBy.name}
-        </span>
+                  <strong className="assigned-user-display">
 
-        <small>
-          {ticket.createdBy.role} ·{" "}
-          {ticket.createdBy.department}
-        </small>
-      </>
-    ) : (
-      "Not Recorded"
-    )}
-  </strong>
-</div>
+                    {ticket.createdBy ? (
+                      <>
+                        <span>
+                          {ticket.createdBy.name}
+                        </span>
+
+                        <small>
+                          {ticket.createdBy.role} ·{" "}
+                          {ticket.createdBy.department}
+                        </small>
+                      </>
+                    ) : (
+                      "Not Recorded"
+                    )}
+
+                  </strong>
+                </div>
+
                 <div className="property">
                   <span>Assigned To</span>
 
                   <strong className="assigned-user-display">
+
                     {ticket.assignedToUser ? (
                       <>
                         <span>
@@ -630,6 +774,7 @@ function TicketDetails({
                       ticket.assignedTo ||
                       "Unassigned"
                     )}
+
                   </strong>
                 </div>
 
@@ -639,84 +784,154 @@ function TicketDetails({
 
           </div>
 
-          <div className="activity-card">
+          {/* Resolution Information */}
+
+          <div className="details-card resolution-details-card">
 
             <div className="details-card-header">
+
               <div>
-                <h3>Activity</h3>
+                <h3>Resolution Information</h3>
+
+                <span>
+                  Details about how and when this ticket was resolved
+                </span>
               </div>
 
-              <span>
-                Ticket history
-              </span>
             </div>
 
-            <div className="activity-list">
+            <div className="resolution-info-grid">
 
-              {activityLoading ? (
-                <div className="activity-loading">
-                  Loading activity...
+              <div className="resolution-info-item resolution-summary-item">
+
+                <span>
+                  Resolution Summary
+                </span>
+
+                <strong>
+                  {ticket.resolutionSummary?.trim()
+                    ? ticket.resolutionSummary
+                    : "No resolution recorded"}
+                </strong>
+
+              </div>
+
+              <div className="resolution-info-item">
+
+                <span>
+                  Resolved By
+                </span>
+
+                <strong>
+                  {ticket.resolvedBy?.name || "—"}
+                </strong>
+
+              </div>
+
+              <div className="resolution-info-item">
+
+                <span>
+                  Resolved At
+                </span>
+
+                <strong>
+                  {ticket.resolvedAt
+                    ? new Date(
+                        ticket.resolvedAt
+                      ).toLocaleString()
+                    : "—"}
+                </strong>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* Staff Activity + Internal Notes */}
+
+          {canManageTicket && (
+            <div className="activity-card">
+
+              <div className="details-card-header">
+
+                <div>
+                  <h3>Activity</h3>
                 </div>
-              ) : activities.length === 0 ? (
-                <div className="activity-empty">
-                  No activity recorded yet.
-                </div>
-              ) : (
-                activities.map((activity) => (
-                  <div
-                    className={`activity-item ${
-                      activity.action ===
-                      "Internal Note"
-                        ? "internal-note-item"
-                        : ""
-                    }`}
-                    key={activity._id}
-                  >
 
-                    <div className="activity-marker">
-                      <span></span>
-                    </div>
+                <span>
+                  Ticket history
+                </span>
 
-                    <div className="activity-content">
+              </div>
 
-                      <div className="activity-top">
+              <div className="activity-list">
 
-                        <strong>
-                          {activity.action}
-                        </strong>
+                {activityLoading ? (
+                  <div className="activity-loading">
+                    Loading activity...
+                  </div>
+                ) : activities.length === 0 ? (
+                  <div className="activity-empty">
+                    No activity recorded yet.
+                  </div>
+                ) : (
+                  activities.map((activity) => (
+                    <div
+                      className={`activity-item ${
+                        activity.action ===
+                        "Internal Note"
+                          ? "internal-note-item"
+                          : ""
+                      }`}
+                      key={activity._id}
+                    >
 
-                        <time>
-                          {new Date(
-                            activity.createdAt
-                          ).toLocaleString()}
-                        </time>
+                      <div className="activity-marker">
+                        <span></span>
+                      </div>
+
+                      <div className="activity-content">
+
+                        <div className="activity-top">
+
+                          <strong>
+                            {activity.action}
+                          </strong>
+
+                          <time>
+                            {new Date(
+                              activity.createdAt
+                            ).toLocaleString()}
+                          </time>
+
+                        </div>
+
+                        <p>
+                          {activity.description}
+                        </p>
+
+                        <small>
+                          By {activity.performedBy}
+                        </small>
 
                       </div>
 
-                      <p>
-                        {activity.description}
-                      </p>
-
-                      <small>
-                        By {activity.performedBy}
-                      </small>
-
                     </div>
+                  ))
+                )}
 
-                  </div>
-                ))
-              )}
+              </div>
 
-            </div>
+              {/* Internal Notes - IT Staff Only */}
 
-            {/* Internal notes - IT staff only */}
-            {canManageTicket && (
               <form
                 className="internal-note-form"
                 onSubmit={handleAddNote}
               >
 
                 <div className="internal-note-heading">
+
                   <div>
                     <strong>
                       Add Internal Note
@@ -726,6 +941,7 @@ function TicketDetails({
                       (Visible to IT staff)
                     </small>
                   </div>
+
                 </div>
 
                 <textarea
@@ -759,9 +975,125 @@ function TicketDetails({
                 </div>
 
               </form>
-            )}
+
+            </div>
+          )}
+
+          {/* Public Conversation - Staff + Requester */}
+
+          <div className="public-conversation">
+
+            <div className="public-conversation-header">
+
+              <div>
+                <h3>
+                  Public Conversation
+                </h3>
+
+                <span>
+                  Messages visible to the requester and IT staff
+                </span>
+              </div>
+
+              <span className="conversation-badge">
+                Customer Visible
+              </span>
+
+            </div>
+
+            <div className="conversation-list">
+
+              {commentsLoading ? (
+                <div className="conversation-empty">
+                  Loading conversation...
+                </div>
+              ) : comments.length === 0 ? (
+                <div className="conversation-empty">
+                  No public messages yet.
+                </div>
+              ) : (
+                comments.map((item) => (
+                  <div
+                    className={`conversation-message ${
+                      item.authorRole === "Requester"
+                        ? "requester-message"
+                        : "staff-message"
+                    }`}
+                    key={item._id}
+                  >
+
+                    <div className="conversation-message-header">
+
+                      <div>
+
+                        <strong>
+                          {item.authorName}
+                        </strong>
+
+                        <span>
+                          {item.authorRole}
+                        </span>
+
+                      </div>
+
+                      <time>
+                        {new Date(
+                          item.createdAt
+                        ).toLocaleString()}
+                      </time>
+
+                    </div>
+
+                    <p>
+                      {item.message}
+                    </p>
+
+                  </div>
+                ))
+              )}
+
+            </div>
+
+            <form
+              className="public-comment-form"
+              onSubmit={handleAddComment}
+            >
+
+              <textarea
+                value={comment}
+                onChange={(event) =>
+                  setComment(event.target.value)
+                }
+                placeholder="Write a message to the requester or IT support..."
+                maxLength={2000}
+                rows="4"
+              />
+
+              <div className="public-comment-footer">
+
+                <span>
+                  {comment.length} / 2000
+                </span>
+
+                <button
+                  type="submit"
+                  className="public-comment-button"
+                  disabled={
+                    commentSaving ||
+                    !comment.trim()
+                  }
+                >
+                  {commentSaving
+                    ? "Sending..."
+                    : "Send Message"}
+                </button>
+
+              </div>
+
+            </form>
 
           </div>
+
         </>
 
       ) : (
@@ -772,20 +1104,28 @@ function TicketDetails({
         >
 
           <div className="details-card-header">
-            <h3>Edit Ticket</h3>
+
+            <h3>
+              Edit Ticket
+            </h3>
 
             <span>
               {isRequester
                 ? "Update your ticket details"
                 : "Update ticket information"}
             </span>
+
           </div>
 
           <div className="edit-form">
 
-            {/* Title - everyone can edit */}
+            {/* Title - Everyone Can Edit */}
+
             <div className="form-group">
-              <label>Ticket Title</label>
+
+              <label>
+                Ticket Title
+              </label>
 
               <input
                 type="text"
@@ -794,11 +1134,16 @@ function TicketDetails({
                 onChange={handleChange}
                 required
               />
+
             </div>
 
-            {/* Description - everyone can edit */}
+            {/* Description - Everyone Can Edit */}
+
             <div className="form-group">
-              <label>Description</label>
+
+              <label>
+                Description
+              </label>
 
               <textarea
                 name="description"
@@ -808,21 +1153,54 @@ function TicketDetails({
                 maxLength={1000}
                 required
               />
+
             </div>
 
-            {/* Staff-only controls */}
+            {/* Staff-only Controls */}
+
             {canManageTicket && (
               <>
+
+                {formData.status === "Resolved" && (
+                  <div className="form-group resolution-form-group">
+
+                    <label>
+                      Resolution Summary
+                    </label>
+
+                    <small>
+                      (Required when resolving a ticket.)
+                    </small>
+
+                    <textarea
+                      name="resolutionSummary"
+                      value={
+                        formData.resolutionSummary
+                      }
+                      onChange={handleChange}
+                      rows="4"
+                      maxLength={1000}
+                      placeholder="Describe how the issue was resolved..."
+                      required
+                    />
+
+                  </div>
+                )}
+
                 <div className="form-row">
 
                   <div className="form-group">
-                    <label>Status</label>
+
+                    <label>
+                      Status
+                    </label>
 
                     <select
                       name="status"
                       value={formData.status}
                       onChange={handleChange}
                     >
+
                       <option value="Open">
                         Open
                       </option>
@@ -835,20 +1213,30 @@ function TicketDetails({
                         Resolved
                       </option>
 
+                      <option value="Reopen">
+                        Reopen
+                      </option>
+
                       <option value="Closed">
                         Closed
                       </option>
+
                     </select>
+
                   </div>
 
                   <div className="form-group">
-                    <label>Priority</label>
+
+                    <label>
+                      Priority
+                    </label>
 
                     <select
                       name="priority"
                       value={formData.priority}
                       onChange={handleChange}
                     >
+
                       <option value="Low">
                         Low
                       </option>
@@ -864,7 +1252,9 @@ function TicketDetails({
                       <option value="Critical">
                         Critical
                       </option>
+
                     </select>
+
                   </div>
 
                 </div>
@@ -872,13 +1262,17 @@ function TicketDetails({
                 <div className="form-row">
 
                   <div className="form-group">
-                    <label>Category</label>
+
+                    <label>
+                      Category
+                    </label>
 
                     <select
                       name="category"
                       value={formData.category}
                       onChange={handleChange}
                     >
+
                       <option value="Hardware">
                         Hardware
                       </option>
@@ -898,21 +1292,30 @@ function TicketDetails({
                       <option value="Other">
                         Other
                       </option>
+
                     </select>
+
                   </div>
 
                   <div className="form-group">
 
-                    <label>Assigned To</label>
+                    <label>
+                      Assigned To
+                    </label>
 
                     <select
                       name="assignedToUser"
-                      value={formData.assignedToUser}
+                      value={
+                        formData.assignedToUser
+                      }
                       onChange={handleChange}
                     >
-                    <option value="">
-                      {usersLoading ? "Loading users..." : "Unassigned"}
-                    </option>
+
+                      <option value="">
+                        {usersLoading
+                          ? "Loading users..."
+                          : "Unassigned"}
+                      </option>
 
                       {!usersLoading &&
                         users.map((user) => (
@@ -925,6 +1328,7 @@ function TicketDetails({
                             {user.department}
                           </option>
                         ))}
+
                     </select>
 
                     <small>
@@ -935,35 +1339,64 @@ function TicketDetails({
                   </div>
 
                 </div>
+
               </>
             )}
 
-            {/* Requester information */}
+            {/* Requester Information */}
+
             {isRequester && (
               <div className="requester-edit-info">
+
                 <div className="property">
-                  <span>Status</span>
-                  <strong>{ticket.status}</strong>
+
+                  <span>
+                    Status
+                  </span>
+
+                  <strong>
+                    {ticket.status}
+                  </strong>
+
                 </div>
 
                 <div className="property">
-                  <span>Priority</span>
-                  <strong>{ticket.priority}</strong>
+
+                  <span>
+                    Priority
+                  </span>
+
+                  <strong>
+                    {ticket.priority}
+                  </strong>
+
                 </div>
 
                 <div className="property">
-                  <span>Category</span>
-                  <strong>{ticket.category}</strong>
+
+                  <span>
+                    Category
+                  </span>
+
+                  <strong>
+                    {ticket.category}
+                  </strong>
+
                 </div>
 
                 <div className="property">
-                  <span>Assigned To</span>
+
+                  <span>
+                    Assigned To
+                  </span>
+
                   <strong>
                     {ticket.assignedToUser
                       ? ticket.assignedToUser.name
                       : ticket.assignedTo ||
                         "Unassigned"}
                   </strong>
+
                 </div>
 
                 <small>
@@ -971,6 +1404,7 @@ function TicketDetails({
                   assignment can only be changed by
                   IT staff.
                 </small>
+
               </div>
             )}
 
