@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/Hhaard/it-service-management-platform/issues"
   },
-  "homepage": "https://github.com/Hhaard/it-service-management-platform#readme"
+  "homepage": "https://github.com/Hhaard/it-service-management-platform#readme",
+  "dependencies": {
+    "mongodb": "^7.6.0"
+  }
 }

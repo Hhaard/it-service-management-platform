@@ -7,7 +7,7 @@ import ChangePassword from "./ChangePassword";
 
 import "./App.css";
 
-const API_URL = "http://localhost:5000/api";
+import API_URL from "./config/api";
 
 
 // ============================================================

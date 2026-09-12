@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getSlaStatus } from "../utils/sla";
 
-const API_URL = "http://localhost:5000/api";
+import API_URL from "../config/api";
 
 
 // ============================================================
