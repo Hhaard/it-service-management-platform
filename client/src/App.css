@@ -1,5 +1,6 @@
 * {
   box-sizing: border-box;
+}
 
 body {
   margin: 0;
@@ -4979,5 +4980,4 @@ background: #ffffff;
   .analytics-total strong {
     font-size: 19px;
   }
-}
 }
