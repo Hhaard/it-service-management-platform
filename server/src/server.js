@@ -5,6 +5,7 @@ require("dotenv").config();
 const connectDB = require("./config/database");
 const ticketRoutes = require("./routes/ticketRoutes");
 const userRoutes = require("./routes/usersRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const app = express();
 const authRoutes = require("./routes/authRoutes");
@@ -27,7 +28,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/tickets", ticketRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
-
+app.use("/api/dashboard", dashboardRoutes);
 // Start server
 const startServer = async () => {
   await connectDB();

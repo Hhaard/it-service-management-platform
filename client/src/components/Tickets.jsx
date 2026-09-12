@@ -97,6 +97,7 @@ function Tickets({
             <option value="In Progress">In Progress</option>
             <option value="Resolved">Resolved</option>
             <option value="Closed">Closed</option>
+            <option value="Reopen">Reopen</option>
           </select>
 
           <select
@@ -136,22 +137,22 @@ function Tickets({
       </div>
 
       <div className="ticket-results">
-      <div className="results-header">
-  <div>
-    Showing{" "}
-    <strong>{filteredTickets.length}</strong>{" "}
-    {filteredTickets.length === 1
-      ? "ticket"
-      : "tickets"}
-  </div>
+  <div className="results-header">
+    <div>
+      Showing{" "}
+      <strong>{filteredTickets.length}</strong>{" "}
+      {filteredTickets.length === 1
+        ? "ticket"
+        : "tickets"}
+    </div>
 
-  <button
-    className="refresh-button"
-    onClick={onRefresh}
-  >
-    ↻ Refresh
-  </button>
-</div>
+    <button
+      className="refresh-button"
+      onClick={onRefresh}
+    >
+      ↻ Refresh
+    </button>
+  </div>
 
         {filteredTickets.length === 0 ? (
           <div className="no-results">

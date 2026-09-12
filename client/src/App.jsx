@@ -10,12 +10,14 @@ import "./App.css";
 const API_URL = "http://localhost:5000/api";
 
 function App() {
+  /* =========================================
+     USER / AUTHENTICATION
+  ========================================= */
+
   const [currentUser, setCurrentUser] = useState(() => {
     const savedUser = localStorage.getItem("user");
 
-    return savedUser
-      ? JSON.parse(savedUser)
-      : null;
+    return savedUser ? JSON.parse(savedUser) : null;
   });
 
   const handleLogout = () => {
@@ -25,7 +27,22 @@ function App() {
     setCurrentUser(null);
   };
 
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  /* =========================================
+     NAVIGATION
+  ========================================= */
+
+  const [currentPage, setCurrentPage] =
+    useState("dashboard");
+
+  const [selectedTicket, setSelectedTicket] =
+    useState(null);
+
+  /* =========================================
+     CREATE TICKET
+  ========================================= */
+
+  const [showCreateForm, setShowCreateForm] =
+    useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -37,11 +54,31 @@ function App() {
 
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
+
+  /* =========================================
+     TICKETS
+  ========================================= */
+
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [currentPage, setCurrentPage] = useState("dashboard");
-  const [selectedTicket, setSelectedTicket] = useState(null);
+
+  /* =========================================
+     DASHBOARD ANALYTICS
+  ========================================= */
+
+  const [dashboardData, setDashboardData] =
+    useState(null);
+
+  const [dashboardLoading, setDashboardLoading] =
+    useState(true);
+
+  const [dashboardError, setDashboardError] =
+    useState("");
+
+  /* =========================================
+     FETCH TICKETS
+  ========================================= */
 
   const fetchTickets = async () => {
     try {
@@ -55,13 +92,16 @@ function App() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/tickets`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(
+        `${API_URL}/tickets`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       if (response.status === 401) {
         localStorage.removeItem("token");
@@ -71,10 +111,13 @@ function App() {
       }
 
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
+        const data = await response
+          .json()
+          .catch(() => ({}));
 
         throw new Error(
-          data.message || "Failed to fetch tickets"
+          data.message ||
+            "Failed to fetch tickets"
         );
       }
 
@@ -82,12 +125,93 @@ function App() {
 
       setTickets(data);
     } catch (err) {
-      console.error("Fetch tickets error:", err);
+      console.error(
+        "Fetch tickets error:",
+        err
+      );
+
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  /* =========================================
+     FETCH DASHBOARD
+  ========================================= */
+
+  const fetchDashboard = async () => {
+    try {
+      setDashboardLoading(true);
+      setDashboardError("");
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setDashboardError(
+          "Authentication required"
+        );
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/dashboard`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        setCurrentUser(null);
+        return;
+      }
+
+      if (!response.ok) {
+        const data = await response
+          .json()
+          .catch(() => ({}));
+
+        throw new Error(
+          data.message ||
+            "Failed to fetch dashboard analytics"
+        );
+      }
+
+      const data = await response.json();
+
+      setDashboardData(data);
+    } catch (err) {
+      console.error(
+        "Fetch dashboard error:",
+        err
+      );
+
+      setDashboardError(err.message);
+    } finally {
+      setDashboardLoading(false);
+    }
+  };
+
+  /* =========================================
+     REFRESH EVERYTHING
+  ========================================= */
+
+  const refreshDashboard = async () => {
+    await Promise.all([
+      fetchTickets(),
+      fetchDashboard(),
+    ]);
+  };
+
+  /* =========================================
+     FORM HANDLING
+  ========================================= */
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -98,6 +222,10 @@ function App() {
     }));
   };
 
+  /* =========================================
+     CREATE TICKET
+  ========================================= */
+
   const handleCreateTicket = async (event) => {
     event.preventDefault();
 
@@ -105,27 +233,36 @@ function App() {
       setCreating(true);
       setCreateError("");
 
-      const response = await fetch(`${API_URL}/tickets`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          ...formData,
-          requester: currentUser.name,
-        }),
-      });
+      const response = await fetch(
+        `${API_URL}/tickets`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem(
+              "token"
+            )}`,
+          },
+          body: JSON.stringify({
+            ...formData,
+            requester: currentUser.name,
+          }),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Failed to create ticket"
+          data.message ||
+            "Failed to create ticket"
         );
       }
 
-      setTickets((previous) => [data, ...previous]);
+      setTickets((previous) => [
+        data,
+        ...previous,
+      ]);
 
       setFormData({
         title: "",
@@ -136,6 +273,8 @@ function App() {
       });
 
       setShowCreateForm(false);
+
+      await fetchDashboard();
     } catch (err) {
       setCreateError(err.message);
     } finally {
@@ -143,88 +282,99 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    if (currentUser) {
-      setFormData((previous) => ({
-        ...previous,
-        requester: currentUser.name,
-      }));
+  /* =========================================
+     INITIAL DATA LOAD
+  ========================================= */
 
-      fetchTickets();
+  useEffect(() => {
+    if (!currentUser) {
+      return;
     }
+
+    setFormData((previous) => ({
+      ...previous,
+      requester: currentUser.name,
+    }));
+
+    fetchTickets();
+    fetchDashboard();
   }, [currentUser]);
 
-  const totalTickets = tickets.length;
+  /* =========================================
+     DASHBOARD VALUES
+  ========================================= */
 
-  const openTickets = tickets.filter(
-    (ticket) => ticket.status === "Open"
-  ).length;
+  const summary =
+    dashboardData?.summary || {};
 
-  const inProgressTickets = tickets.filter(
-    (ticket) => ticket.status === "In Progress"
-  ).length;
+  const totalTickets =
+    summary.totalTickets || 0;
 
-  const resolvedTickets = tickets.filter(
-    (ticket) => ticket.status === "Resolved"
-  ).length;
+  const openTickets =
+    summary.openTickets || 0;
 
-  const closedTickets = tickets.filter(
-    (ticket) => ticket.status === "Closed"
-  ).length;
+  const inProgressTickets =
+    summary.inProgressTickets || 0;
 
-  const completedTickets =
-    resolvedTickets + closedTickets;
+  const resolvedTickets =
+    summary.resolvedTickets || 0;
+
+  const closedTickets =
+    summary.closedTickets || 0;
+
+  const reopenedTickets =
+    summary.reopenedTickets || 0;
+
+  const criticalTickets =
+    summary.criticalTickets || 0;
 
   const resolutionRate =
-    totalTickets === 0
-      ? 0
-      : Math.round(
-          (completedTickets / totalTickets) * 100
-        );
+    summary.resolutionRate || 0;
 
-  const criticalTickets = tickets.filter(
-    (ticket) => ticket.priority === "Critical"
-  ).length;
+  const averageResolutionTimeHours =
+    summary.averageResolutionTimeHours || 0;
 
-  const categoryCounts = {
-    Hardware: tickets.filter(
-      (ticket) => ticket.category === "Hardware"
-    ).length,
+  const slaCompliance =
+    summary.slaCompliance || 0;
 
-    Software: tickets.filter(
-      (ticket) => ticket.category === "Software"
-    ).length,
+  const categoryCounts =
+    dashboardData?.categoryCounts || {
+      Hardware: 0,
+      Software: 0,
+      Network: 0,
+      Access: 0,
+      Other: 0,
+    };
 
-    Network: tickets.filter(
-      (ticket) => ticket.category === "Network"
-    ).length,
+  const priorityCounts =
+    dashboardData?.priorityCounts || {
+      Critical: 0,
+      High: 0,
+      Medium: 0,
+      Low: 0,
+    };
 
-    Access: tickets.filter(
-      (ticket) => ticket.category === "Access"
-    ).length,
+  const statusCounts =
+    dashboardData?.statusCounts || {
+      Open: 0,
+      "In Progress": 0,
+      Resolved: 0,
+      Closed: 0,
+      Reopen: 0,
+    };
 
-    Other: tickets.filter(
-      (ticket) => ticket.category === "Other"
-    ).length,
-  };
+  const slaCounts =
+    dashboardData?.slaCounts || {
+      "On Track": 0,
+      "At Risk": 0,
+      Breached: 0,
+      Completed: 0,
+      Unknown: 0,
+    };
 
-  const priorityCounts = {
-    Critical: tickets.filter(
-      (ticket) => ticket.priority === "Critical"
-    ).length,
-
-    High: tickets.filter(
-      (ticket) => ticket.priority === "High"
-    ).length,
-
-    Medium: tickets.filter(
-      (ticket) => ticket.priority === "Medium"
-    ).length,
-
-    Low: tickets.filter(
-      (ticket) => ticket.priority === "Low"
-    ).length,
-  };
+  /* =========================================
+     AUTH GUARDS
+  ========================================= */
 
   if (!currentUser) {
     return (
@@ -235,10 +385,12 @@ function App() {
       />
     );
   }
-  
+
   const mustChangePassword =
-    localStorage.getItem("mustChangePassword") === "true";
-  
+    localStorage.getItem(
+      "mustChangePassword"
+    ) === "true";
+
   if (mustChangePassword) {
     return (
       <ChangePassword
@@ -248,75 +400,164 @@ function App() {
       />
     );
   }
-  
+
   const canAccessUsers = [
     "Administrator",
     "Manager",
     "IT Support Agent",
   ].includes(currentUser.role);
 
+  /* =========================================
+     OPEN CREATE TICKET MODAL
+  ========================================= */
+
+  const openCreateTicket = () => {
+    setCreateError("");
+
+    setFormData((previous) => ({
+      ...previous,
+      requester: currentUser.name,
+    }));
+
+    setShowCreateForm(true);
+  };
+
+  /* =========================================
+     MAIN UI
+  ========================================= */
+
   return (
     <div className="app">
 
-      {/* Sidebar */}
+      {/* =====================================
+          SIDEBAR
+      ===================================== */}
+
       <aside className="sidebar">
 
-        <div className="brand">
-          <div className="brand-icon">IT</div>
+        {/* Brand */}
 
-          <div>
-            <h1>ITSM</h1>
-            <span>Service Management</span>
+        <div className="brand">
+
+          <div className="brand-icon">
+            IT
           </div>
+
+          <div className="brand-text">
+
+            <h1>ITSM</h1>
+
+            <span>
+              Service Management
+            </span>
+
+          </div>
+
         </div>
+
+        {/* Navigation */}
 
         <nav className="navigation">
 
           <button
+            type="button"
             className={`nav-item ${
-              currentPage === "dashboard" ? "active" : ""
+              currentPage === "dashboard"
+                ? "active"
+                : ""
             }`}
-            onClick={() => setCurrentPage("dashboard")}
+            onClick={() =>
+              setCurrentPage("dashboard")
+            }
           >
-            <span>▦</span>
-            Dashboard
+            <span className="nav-icon">
+              ▦
+            </span>
+
+            <span>
+              Dashboard
+            </span>
           </button>
 
           <button
+            type="button"
             className={`nav-item ${
-              currentPage === "tickets" ? "active" : ""
+              currentPage === "tickets"
+                ? "active"
+                : ""
             }`}
-            onClick={() => setCurrentPage("tickets")}
+            onClick={() =>
+              setCurrentPage("tickets")
+            }
           >
-            <span>▤</span>
-            Tickets
+            <span className="nav-icon">
+              ▤
+            </span>
+
+            <span>
+              Tickets
+            </span>
           </button>
 
-          {/* Users - hidden from Requesters */}
           {canAccessUsers && (
             <button
+              type="button"
               className={`nav-item ${
-                currentPage === "users" ? "active" : ""
+                currentPage === "users"
+                  ? "active"
+                  : ""
               }`}
-              onClick={() => setCurrentPage("users")}
+              onClick={() =>
+                setCurrentPage("users")
+              }
             >
-              <span>◎</span>
-              Users
+              <span className="nav-icon">
+                ◎
+              </span>
+
+              <span>
+                Users
+              </span>
             </button>
           )}
 
-          <a href="#reports" className="nav-item">
-            <span>▥</span>
-            Reports
-          </a>
+          <button
+            type="button"
+            className="nav-item"
+            onClick={() => {
+              setCurrentPage("dashboard");
+              setTimeout(() => {
+                document
+                  .getElementById("reports")
+                  ?.scrollIntoView({
+                    behavior: "smooth",
+                  });
+              }, 50);
+            }}
+          >
+            <span className="nav-icon">
+              ▥
+            </span>
+
+            <span>
+              Reports
+            </span>
+          </button>
 
         </nav>
+
+        {/* Sidebar Bottom */}
 
         <div className="sidebar-bottom">
 
           <div className="system-status">
+
             <span className="status-dot"></span>
-            API Connected
+
+            <span>
+              API Connected
+            </span>
+
           </div>
 
           <div className="user-card">
@@ -324,20 +565,30 @@ function App() {
             <div className="avatar">
               {currentUser.name
                 .split(" ")
-                .map((name) => name[0])
+                .map(
+                  (name) => name[0]
+                )
                 .join("")
                 .slice(0, 2)
                 .toUpperCase()}
             </div>
 
-            <div>
-              <strong>{currentUser.name}</strong>
-              <span>{currentUser.role}</span>
+            <div className="user-info">
+
+              <strong>
+                {currentUser.name}
+              </strong>
+
+              <span>
+                {currentUser.role}
+              </span>
+
             </div>
 
           </div>
 
           <button
+            type="button"
             className="logout-button"
             onClick={handleLogout}
           >
@@ -348,112 +599,208 @@ function App() {
 
       </aside>
 
-      {/* Main Content */}
+      {/* =====================================
+          MAIN CONTENT
+      ===================================== */}
+
       <main className="main-content">
 
+        {/* ===================================
+            TOPBAR
+        =================================== */}
+
         <header className="topbar">
-          <div>
-            <p className="eyebrow">IT OPERATIONS</p>
-            <h2>Dashboard</h2>
+
+          <div className="topbar-heading">
+
+            <p className="eyebrow">
+              IT OPERATIONS
+            </p>
+
+            <h2>
+              {currentPage ===
+              "ticket-details"
+                ? "Ticket Details"
+                : currentPage === "tickets"
+                ? "Tickets"
+                : currentPage === "users"
+                ? "User Management"
+                : "Dashboard"}
+            </h2>
+
           </div>
 
           <button
+            type="button"
             className="create-button"
-            onClick={() => {
-              setCreateError("");
-              setFormData((previous) => ({
-                ...previous,
-                requester: currentUser.name,
-              }));
-              setShowCreateForm(true);
-            }}
+            onClick={openCreateTicket}
           >
-            + Create Ticket
+            <span>+</span>
+            Create Ticket
           </button>
+
         </header>
 
-        {/* Create Ticket Modal */}
+        {/* ===================================
+            CREATE TICKET MODAL
+        =================================== */}
+
         {showCreateForm && (
           <div className="modal-overlay">
+
             <div className="modal">
 
               <div className="modal-header">
+
                 <div>
-                  <p className="eyebrow">SERVICE DESK</p>
-                  <h3>Create New Ticket</h3>
+
+                  <p className="eyebrow">
+                    SERVICE DESK
+                  </p>
+
+                  <h3>
+                    Create New Ticket
+                  </h3>
+
+                  <p className="modal-subtitle">
+                    Submit an issue or service
+                    request to the IT team.
+                  </p>
+
                 </div>
 
                 <button
+                  type="button"
                   className="close-button"
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() =>
+                    setShowCreateForm(false)
+                  }
+                  aria-label="Close"
                 >
                   ×
                 </button>
+
               </div>
 
-              <form onSubmit={handleCreateTicket}>
+              <form
+                onSubmit={
+                  handleCreateTicket
+                }
+              >
+
+                {/* Ticket Title */}
 
                 <div className="form-group">
+
                   <label htmlFor="title">
-                    <span className="label-icon">●</span>
-                    TICKET TITLE*
+
+                    <span className="label-icon">
+                      ●
+                    </span>
+
+                    TICKET TITLE
+                    <span className="required">
+                      *
+                    </span>
+
                   </label>
 
                   <small>
-                    (Keep the title short and specific.)
+                    Keep the title short and
+                    specific.
                   </small>
 
                   <input
                     id="title"
                     name="title"
                     type="text"
-                    placeholder="Briefly describe the issue!!"
-                    value={formData.title}
-                    onChange={handleInputChange}
+                    placeholder="Briefly describe the issue..."
+                    value={
+                      formData.title
+                    }
+                    onChange={
+                      handleInputChange
+                    }
                     required
                   />
+
                 </div>
 
+                {/* Description */}
+
                 <div className="form-group">
+
                   <label htmlFor="description">
-                    <span className="label-icon">▤</span>
-                    DESCRIPTION*
+
+                    <span className="label-icon">
+                      ▤
+                    </span>
+
+                    DESCRIPTION
+                    <span className="required">
+                      *
+                    </span>
+
                   </label>
 
                   <small>
-                    (Provide enough detail to help the IT team
-                    troubleshoot the issue.){" "}
-                    {formData.description.length} / 1000
-                    characters.
+                    Provide enough detail to
+                    help the IT team
+                    troubleshoot the issue.
+                    {" "}
+                    {
+                      formData.description
+                        .length
+                    }{" "}
+                    / 1000 characters.
                   </small>
 
                   <textarea
                     id="description"
                     name="description"
                     placeholder="Describe the problem, what you were doing when it occurred, and any error messages you received..."
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    rows="10"
+                    value={
+                      formData.description
+                    }
+                    onChange={
+                      handleInputChange
+                    }
+                    rows="9"
                     maxLength={1000}
                     required
                   />
+
                 </div>
+
+                {/* Category + Priority */}
 
                 <div className="form-row">
 
                   <div className="form-group">
+
                     <label htmlFor="category">
-                      <span className="label-icon">◈</span>
+
+                      <span className="label-icon">
+                        ◈
+                      </span>
+
                       CATEGORY
+
                     </label>
 
                     <div className="select-wrapper">
+
                       <select
                         id="category"
                         name="category"
-                        value={formData.category}
-                        onChange={handleInputChange}
+                        value={
+                          formData.category
+                        }
+                        onChange={
+                          handleInputChange
+                        }
                       >
+
                         <option value="Hardware">
                           💻 Hardware
                         </option>
@@ -473,25 +820,40 @@ function App() {
                         <option value="Other">
                           📋 Other
                         </option>
+
                       </select>
 
                       <span className="select-arrow"></span>
+
                     </div>
+
                   </div>
 
                   <div className="form-group">
+
                     <label htmlFor="priority">
-                      <span className="label-icon">◆</span>
+
+                      <span className="label-icon">
+                        ◆
+                      </span>
+
                       PRIORITY
+
                     </label>
 
                     <div className="select-wrapper">
+
                       <select
                         id="priority"
                         name="priority"
-                        value={formData.priority}
-                        onChange={handleInputChange}
+                        value={
+                          formData.priority
+                        }
+                        onChange={
+                          handleInputChange
+                        }
                       >
+
                         <option value="Low">
                           Low — Normal request
                         </option>
@@ -507,37 +869,57 @@ function App() {
                         <option value="Critical">
                           Critical — Urgent
                         </option>
+
                       </select>
 
                       <span className="select-arrow"></span>
+
                     </div>
+
                   </div>
 
                 </div>
+
+                {/* Requester */}
 
                 <div className="form-group">
 
                   <label htmlFor="requester">
-                    <span className="label-icon">♙</span>
+
+                    <span className="label-icon">
+                      ♙
+                    </span>
+
                     REQUESTER
-                    <span className="required">*</span>
+
+                    <span className="required">
+                      *
+                    </span>
+
                   </label>
 
                   <small>
-                    The person reporting the issue.
+                    The person reporting the
+                    issue.
                   </small>
 
                   <div className="requester-input">
+
                     <input
                       id="requester"
                       name="requester"
                       type="text"
-                      value={currentUser.name}
+                      value={
+                        currentUser.name
+                      }
                       readOnly
                     />
+
                   </div>
 
                 </div>
+
+                {/* Error */}
 
                 {createError && (
                   <div className="form-error">
@@ -545,13 +927,17 @@ function App() {
                   </div>
                 )}
 
+                {/* Form Actions */}
+
                 <div className="form-actions">
 
                   <button
                     type="button"
                     className="cancel-button"
                     onClick={() =>
-                      setShowCreateForm(false)
+                      setShowCreateForm(
+                        false
+                      )
                     }
                   >
                     Cancel
@@ -572,83 +958,699 @@ function App() {
               </form>
 
             </div>
+
           </div>
         )}
 
-        {/* Dashboard */}
+        {/* ===================================
+            DASHBOARD
+        =================================== */}
+
         {currentPage === "dashboard" && (
-          <section id="dashboard" className="dashboard">
+          <section
+            id="dashboard"
+            className="dashboard"
+          >
+
+            {/* Welcome */}
 
             <div className="welcome">
-              <div>
+
+              <div className="welcome-content">
+
+                <p className="welcome-kicker">
+                  SERVICE DESK OVERVIEW
+                </p>
+
                 <h3>
                   Welcome back,{" "}
-                  {currentUser.name.split(" ")[0]}
+                  {
+                    currentUser.name.split(
+                      " "
+                    )[0]
+                  }
                 </h3>
 
                 <p>
-                  Here's an overview of your IT service desk.
+                  Monitor your team's
+                  service requests, workload,
+                  and operational performance.
                 </p>
+
               </div>
 
               <button
+                type="button"
                 className="refresh-button"
-                onClick={fetchTickets}
+                onClick={refreshDashboard}
+                disabled={
+                  loading ||
+                  dashboardLoading
+                }
               >
-                ↻ Refresh
+                <span className="refresh-icon">
+                  ↻
+                </span>
+
+                {loading ||
+                dashboardLoading
+                  ? "Refreshing..."
+                  : "Refresh"}
               </button>
+
             </div>
 
-            {/* Statistics */}
+            {/* Dashboard Error */}
+
+            {dashboardError && (
+              <div className="message error">
+                {dashboardError}
+              </div>
+            )}
+
+            {/* =================================
+                KEY METRICS
+            ================================= */}
+
             <section className="stats-grid">
 
-              <div className="stat-card">
-                <div className="stat-icon blue">
-                  ◆
+              {dashboardLoading ? (
+                <div className="message">
+                  Loading dashboard
+                  analytics...
                 </div>
+              ) : (
+                <>
 
-                <div>
-                  <span>Total Tickets</span>
-                  <strong>{totalTickets}</strong>
-                </div>
-              </div>
+                  {/* Total Tickets */}
 
-              <div className="stat-card">
-                <div className="stat-icon orange">
-                  !
-                </div>
+                  <div className="stat-card">
 
-                <div>
-                  <span>Open Tickets</span>
-                  <strong>{openTickets}</strong>
-                </div>
-              </div>
+                    <div className="stat-icon blue">
+                      ◆
+                    </div>
 
-              <div className="stat-card">
-                <div className="stat-icon red">
-                  !
-                </div>
+                    <div className="stat-content">
 
-                <div>
-                  <span>Critical Tickets</span>
-                  <strong>{criticalTickets}</strong>
-                </div>
-              </div>
+                      <span>
+                        Total Tickets
+                      </span>
 
-              <div className="stat-card">
-                <div className="stat-icon green">
-                  ✓
-                </div>
+                      <strong>
+                        {totalTickets}
+                      </strong>
 
-                <div>
-                  <span>Resolution Rate</span>
-                  <strong>{resolutionRate}%</strong>
-                </div>
-              </div>
+                      <small>
+                        All service requests
+                      </small>
+
+                    </div>
+
+                  </div>
+
+                  {/* Open Tickets */}
+
+                  <div className="stat-card">
+
+                    <div className="stat-icon orange">
+                      !
+                    </div>
+
+                    <div className="stat-content">
+
+                      <span>
+                        Open Tickets
+                      </span>
+
+                      <strong>
+                        {openTickets}
+                      </strong>
+
+                      <small>
+                        Awaiting action
+                      </small>
+
+                    </div>
+
+                  </div>
+
+                  {/* Critical Tickets */}
+
+                  <div className="stat-card">
+
+                    <div className="stat-icon red">
+                      !
+                    </div>
+
+                    <div className="stat-content">
+
+                      <span>
+                        Critical Tickets
+                      </span>
+
+                      <strong>
+                        {criticalTickets}
+                      </strong>
+
+                      <small>
+                        Highest priority
+                      </small>
+
+                    </div>
+
+                  </div>
+
+                  {/* Resolution Rate */}
+
+                  <div className="stat-card">
+
+                    <div className="stat-icon green">
+                      ✓
+                    </div>
+
+                    <div className="stat-content">
+
+                      <span>
+                        Resolution Rate
+                      </span>
+
+                      <strong>
+                        {resolutionRate}%
+                      </strong>
+
+                      <small>
+                        Resolved or closed
+                      </small>
+
+                    </div>
+
+                  </div>
+
+                  {/* Average Resolution */}
+
+                  <div className="stat-card">
+
+                    <div className="stat-icon blue">
+                      ◷
+                    </div>
+
+                    <div className="stat-content">
+
+                      <span>
+                        Avg. Resolution Time
+                      </span>
+
+                      <strong>
+                        {
+                          averageResolutionTimeHours
+                        }
+                        h
+                      </strong>
+
+                      <small>
+                        Average completion time
+                      </small>
+
+                    </div>
+
+                  </div>
+
+                  {/* SLA */}
+
+                  <div className="stat-card">
+
+                    <div className="stat-icon green">
+                      ✓
+                    </div>
+
+                    <div className="stat-content">
+
+                      <span>
+                        SLA Compliance
+                      </span>
+
+                      <strong>
+                        {slaCompliance}%
+                      </strong>
+
+                      <small>
+                        Service-level performance
+                      </small>
+
+                    </div>
+
+                  </div>
+
+                </>
+              )}
 
             </section>
 
-            {/* Tickets */}
+            {/* =================================
+                ANALYTICS
+            ================================= */}
+
+            {!dashboardLoading && (
+              <section
+                id="reports"
+                className="dashboard-analytics"
+              >
+
+                <div className="analytics-heading">
+
+                  <div>
+
+                    <p className="eyebrow">
+                      PERFORMANCE
+                    </p>
+
+                    <h3>
+                      Service Desk Analytics
+                    </h3>
+
+                    <p>
+                      Understand ticket workload,
+                      severity, classification,
+                      and SLA performance.
+                    </p>
+
+                  </div>
+
+                </div>
+
+                <div className="analytics-grid">
+
+                  {/* =================================
+                      STATUS
+                  ================================= */}
+
+                  <div className="analytics-card">
+
+                    <div className="analytics-card-header">
+
+                      <div>
+
+                        <span className="analytics-kicker">
+                          WORKFLOW
+                        </span>
+
+                        <h3>
+                          Tickets by Status
+                        </h3>
+
+                      </div>
+
+                      <div className="analytics-total">
+
+                        <strong>
+                          {totalTickets}
+                        </strong>
+
+                        <span>
+                          Total
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                    <div className="analytics-list">
+
+                      {Object.entries(
+                        statusCounts
+                      ).map(
+                        (
+                          [
+                            status,
+                            count,
+                          ]
+                        ) => {
+
+                          const percentage =
+                            totalTickets ===
+                            0
+                              ? 0
+                              : Math.round(
+                                  (count /
+                                    totalTickets) *
+                                    100
+                                );
+
+                          return (
+                            <div
+                              className="analytics-row"
+                              key={status}
+                            >
+
+                              <div className="analytics-label">
+
+                                <span>
+                                  {status}
+                                </span>
+
+                                <strong>
+                                  {count}
+                                </strong>
+
+                              </div>
+
+                              <div className="analytics-bar">
+
+                                <div
+                                  className={`analytics-fill status-${status
+                                    .toLowerCase()
+                                    .replace(
+                                      " ",
+                                      "-"
+                                    )}`}
+                                  style={{
+                                    width: `${percentage}%`,
+                                  }}
+                                />
+
+                              </div>
+
+                              <span className="analytics-percentage">
+                                {percentage}%
+                              </span>
+
+                            </div>
+                          );
+                        }
+                      )}
+
+                    </div>
+
+                  </div>
+
+                  {/* =================================
+                      PRIORITY
+                  ================================= */}
+
+                  <div className="analytics-card">
+
+                    <div className="analytics-card-header">
+
+                      <div>
+
+                        <span className="analytics-kicker">
+                          SEVERITY
+                        </span>
+
+                        <h3>
+                          Tickets by Priority
+                        </h3>
+
+                      </div>
+
+                      <div className="analytics-total">
+
+                        <strong>
+                          {criticalTickets}
+                        </strong>
+
+                        <span>
+                          Critical
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                    <div className="analytics-list">
+
+                      {Object.entries(
+                        priorityCounts
+                      ).map(
+                        (
+                          [
+                            priority,
+                            count,
+                          ]
+                        ) => {
+
+                          const percentage =
+                            totalTickets ===
+                            0
+                              ? 0
+                              : Math.round(
+                                  (count /
+                                    totalTickets) *
+                                    100
+                                );
+
+                          return (
+                            <div
+                              className="analytics-row"
+                              key={priority}
+                            >
+
+                              <div className="analytics-label">
+
+                                <span>
+                                  {priority}
+                                </span>
+
+                                <strong>
+                                  {count}
+                                </strong>
+
+                              </div>
+
+                              <div className="analytics-bar">
+
+                                <div
+                                  className={`analytics-fill priority-${priority.toLowerCase()}`}
+                                  style={{
+                                    width: `${percentage}%`,
+                                  }}
+                                />
+
+                              </div>
+
+                              <span className="analytics-percentage">
+                                {percentage}%
+                              </span>
+
+                            </div>
+                          );
+                        }
+                      )}
+
+                    </div>
+
+                  </div>
+
+                  {/* =================================
+                      CATEGORY
+                  ================================= */}
+
+                  <div className="analytics-card">
+
+                    <div className="analytics-card-header">
+
+                      <div>
+
+                        <span className="analytics-kicker">
+                          CLASSIFICATION
+                        </span>
+
+                        <h3>
+                          Tickets by Category
+                        </h3>
+
+                      </div>
+
+                      <div className="analytics-total">
+
+                        <strong>
+                          {totalTickets}
+                        </strong>
+
+                        <span>
+                          Tickets
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                    <div className="analytics-list">
+
+                      {Object.entries(
+                        categoryCounts
+                      ).map(
+                        (
+                          [
+                            category,
+                            count,
+                          ]
+                        ) => {
+
+                          const percentage =
+                            totalTickets ===
+                            0
+                              ? 0
+                              : Math.round(
+                                  (count /
+                                    totalTickets) *
+                                    100
+                                );
+
+                          return (
+                            <div
+                              className="analytics-row"
+                              key={category}
+                            >
+
+                              <div className="analytics-label">
+
+                                <span>
+                                  {category}
+                                </span>
+
+                                <strong>
+                                  {count}
+                                </strong>
+
+                              </div>
+
+                              <div className="analytics-bar">
+
+                                <div
+                                  className="analytics-fill"
+                                  style={{
+                                    width: `${percentage}%`,
+                                  }}
+                                />
+
+                              </div>
+
+                              <span className="analytics-percentage">
+                                {percentage}%
+                              </span>
+
+                            </div>
+                          );
+                        }
+                      )}
+
+                    </div>
+
+                  </div>
+
+                  {/* =================================
+                      SLA
+                  ================================= */}
+
+                  <div className="analytics-card">
+
+                    <div className="analytics-card-header">
+
+                      <div>
+
+                        <span className="analytics-kicker">
+                          SERVICE LEVEL
+                        </span>
+
+                        <h3>
+                          SLA Performance
+                        </h3>
+
+                      </div>
+
+                      <div className="sla-compliance">
+
+                        <strong>
+                          {slaCompliance}%
+                        </strong>
+
+                        <span>
+                          Compliance
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                    <div className="analytics-list">
+
+                      {Object.entries(
+                        slaCounts
+                      ).map(
+                        (
+                          [
+                            status,
+                            count,
+                          ]
+                        ) => {
+
+                          const percentage =
+                            totalTickets ===
+                            0
+                              ? 0
+                              : Math.round(
+                                  (count /
+                                    totalTickets) *
+                                    100
+                                );
+
+                          return (
+                            <div
+                              className="analytics-row"
+                              key={status}
+                            >
+
+                              <div className="analytics-label">
+
+                                <span>
+                                  {status}
+                                </span>
+
+                                <strong>
+                                  {count}
+                                </strong>
+
+                              </div>
+
+                              <div className="analytics-bar">
+
+                                <div
+                                  className={`analytics-fill sla-${status
+                                    .toLowerCase()
+                                    .replace(
+                                      " ",
+                                      "-"
+                                    )}`}
+                                  style={{
+                                    width: `${percentage}%`,
+                                  }}
+                                />
+
+                              </div>
+
+                              <span className="analytics-percentage">
+                                {percentage}%
+                              </span>
+
+                            </div>
+                          );
+                        }
+                      )}
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </section>
+            )}
+
+            {/* =================================
+                RECENT TICKETS
+            ================================= */}
+
             <section
               id="tickets"
               className="tickets-section"
@@ -657,14 +1659,28 @@ function App() {
               <div className="section-header">
 
                 <div>
-                  <h3>Recent Tickets</h3>
-                  <p>Latest service desk activity</p>
+
+                  <p className="eyebrow">
+                    ACTIVITY
+                  </p>
+
+                  <h3>
+                    Recent Tickets
+                  </h3>
+
+                  <p>
+                    Latest service desk activity
+                  </p>
+
                 </div>
 
                 <button
+                  type="button"
                   className="view-all"
                   onClick={() =>
-                    setCurrentPage("tickets")
+                    setCurrentPage(
+                      "tickets"
+                    )
                   }
                 >
                   View all →
@@ -693,12 +1709,24 @@ function App() {
                       ▤
                     </div>
 
-                    <h4>No tickets yet</h4>
+                    <h4>
+                      No tickets yet
+                    </h4>
 
                     <p>
-                      Create your first service ticket to
-                      get started.
+                      Create your first service
+                      ticket to get started.
                     </p>
+
+                    <button
+                      type="button"
+                      className="submit-button"
+                      onClick={
+                        openCreateTicket
+                      }
+                    >
+                      Create First Ticket
+                    </button>
 
                   </div>
                 )}
@@ -711,80 +1739,129 @@ function App() {
                     <table className="ticket-table">
 
                       <thead>
+
                         <tr>
-                          <th>Ticket</th>
-                          <th>Category</th>
-                          <th>Priority</th>
-                          <th>Status</th>
-                          <th>Requester</th>
+
+                          <th>
+                            Ticket
+                          </th>
+
+                          <th>
+                            Category
+                          </th>
+
+                          <th>
+                            Priority
+                          </th>
+
+                          <th>
+                            Status
+                          </th>
+
+                          <th>
+                            Requester
+                          </th>
+
                         </tr>
+
                       </thead>
 
                       <tbody>
 
                         {tickets
                           .slice(0, 10)
-                          .map((ticket) => (
-                            <tr
-                              key={ticket._id}
-                              className="ticket-row"
-                              onClick={() => {
-                                setSelectedTicket(ticket);
-                                setCurrentPage(
-                                  "ticket-details"
-                                );
-                              }}
-                            >
+                          .map(
+                            (ticket) => (
+                              <tr
+                                key={
+                                  ticket._id
+                                }
+                                className="ticket-row"
+                                onClick={() => {
 
-                              <td>
-                                <div className="ticket-title">
-                                  <strong>
-                                    {ticket.title}
-                                  </strong>
+                                  setSelectedTicket(
+                                    ticket
+                                  );
 
-                                  <span>
-                                    #
-                                    {ticket._id
-                                      .slice(-6)
-                                      .toUpperCase()}
+                                  setCurrentPage(
+                                    "ticket-details"
+                                  );
+
+                                }}
+                              >
+
+                                <td>
+
+                                  <div className="ticket-title">
+
+                                    <strong>
+                                      {
+                                        ticket.title
+                                      }
+                                    </strong>
+
+                                    <span>
+                                      #
+                                      {ticket._id
+                                        .slice(
+                                          -6
+                                        )
+                                        .toUpperCase()}
+                                    </span>
+
+                                  </div>
+
+                                </td>
+
+                                <td>
+                                  {
+                                    ticket.category
+                                  }
+                                </td>
+
+                                <td>
+
+                                  <span
+                                    className={`priority ${ticket.priority
+                                      .toLowerCase()
+                                      .replace(
+                                        " ",
+                                        "-"
+                                      )}`}
+                                  >
+                                    {
+                                      ticket.priority
+                                    }
                                   </span>
-                                </div>
-                              </td>
 
-                              <td>{ticket.category}</td>
+                                </td>
 
-                              <td>
-                                <span
-                                  className={`priority ${ticket.priority
-                                    .toLowerCase()
-                                    .replace(
-                                      " ",
-                                      "-"
-                                    )}`}
-                                >
-                                  {ticket.priority}
-                                </span>
-                              </td>
+                                <td>
 
-                              <td>
-                                <span
-                                  className={`status ${ticket.status
-                                    .toLowerCase()
-                                    .replace(
-                                      " ",
-                                      "-"
-                                    )}`}
-                                >
-                                  {ticket.status}
-                                </span>
-                              </td>
+                                  <span
+                                    className={`status ${ticket.status
+                                      .toLowerCase()
+                                      .replace(
+                                        " ",
+                                        "-"
+                                      )}`}
+                                  >
+                                    {
+                                      ticket.status
+                                    }
+                                  </span>
 
-                              <td>
-                                {ticket.requester}
-                              </td>
+                                </td>
 
-                            </tr>
-                          ))}
+                                <td>
+                                  {
+                                    ticket.requester
+                                  }
+                                </td>
+
+                              </tr>
+                            )
+                          )}
 
                       </tbody>
 
@@ -795,182 +1872,84 @@ function App() {
 
             </section>
 
-            {/* Analytics */}
-            <section className="analytics-section">
-
-              <div className="section-header">
-
-                <div>
-                  <h3>Ticket Overview</h3>
-                  <p>
-                    Current ticket distribution by status
-                  </p>
-                </div>
-
-              </div>
-
-              <div className="status-overview">
-
-                <div className="overview-item">
-
-                  <div className="overview-label">
-                    <span>Open</span>
-                    <strong>{openTickets}</strong>
-                  </div>
-
-                  <div className="overview-bar">
-                    <div
-                      className="overview-fill open-fill"
-                      style={{
-                        width: `${
-                          totalTickets === 0
-                            ? 0
-                            : (openTickets /
-                                totalTickets) *
-                              100
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-
-                </div>
-
-                <div className="overview-item">
-
-                  <div className="overview-label">
-                    <span>In Progress</span>
-                    <strong>
-                      {inProgressTickets}
-                    </strong>
-                  </div>
-
-                  <div className="overview-bar">
-                    <div
-                      className="overview-fill progress-fill"
-                      style={{
-                        width: `${
-                          totalTickets === 0
-                            ? 0
-                            : (inProgressTickets /
-                                totalTickets) *
-                              100
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-
-                </div>
-
-                <div className="overview-item">
-
-                  <div className="overview-label">
-                    <span>Resolved</span>
-                    <strong>
-                      {resolvedTickets}
-                    </strong>
-                  </div>
-
-                  <div className="overview-bar">
-                    <div
-                      className="overview-fill resolved-fill"
-                      style={{
-                        width: `${
-                          totalTickets === 0
-                            ? 0
-                            : (resolvedTickets /
-                                totalTickets) *
-                              100
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-
-                </div>
-
-                <div className="overview-item">
-
-                  <div className="overview-label">
-                    <span>Closed</span>
-                    <strong>
-                      {closedTickets}
-                    </strong>
-                  </div>
-
-                  <div className="overview-bar">
-                    <div
-                      className="overview-fill closed-fill"
-                      style={{
-                        width: `${
-                          totalTickets === 0
-                            ? 0
-                            : (closedTickets /
-                                totalTickets) *
-                              100
-                        }%`,
-                      }}
-                    ></div>
-                  </div>
-
-                </div>
-
-              </div>
-
-            </section>
-
           </section>
         )}
 
-        {/* Tickets */}
+        {/* =====================================
+            TICKETS PAGE
+        ===================================== */}
+
         {currentPage === "tickets" && (
           <Tickets
             tickets={tickets}
-            onRefresh={fetchTickets}
-            onCreateTicket={() => {
-              setCreateError("");
-              setFormData((previous) => ({
-                ...previous,
-                requester: currentUser.name,
-              }));
-              setShowCreateForm(true);
+            onRefresh={() => {
+              fetchTickets();
+              fetchDashboard();
             }}
+            onCreateTicket={
+              openCreateTicket
+            }
             onSelectTicket={(ticket) => {
               setSelectedTicket(ticket);
-              setCurrentPage("ticket-details");
+              setCurrentPage(
+                "ticket-details"
+              );
             }}
           />
         )}
 
-        {/* Users */}
+        {/* =====================================
+            USERS PAGE
+        ===================================== */}
+
         {currentPage === "users" &&
           canAccessUsers && (
-            <Users currentUser={currentUser} />
+            <Users
+              currentUser={currentUser}
+            />
           )}
 
-        {/* Ticket Details */}
+        {/* =====================================
+            TICKET DETAILS
+        ===================================== */}
+
         {currentPage === "ticket-details" &&
           selectedTicket && (
             <TicketDetails
-  ticket={selectedTicket}
-  currentUser={currentUser}
-  onBack={() => {
+              ticket={selectedTicket}
+              currentUser={currentUser}
+              onBack={() => {
                 setSelectedTicket(null);
-                setCurrentPage("tickets");
+                setCurrentPage(
+                  "tickets"
+                );
               }}
-              onTicketUpdated={(updatedTicket) => {
-                setTickets((previous) =>
-                  previous.map((ticket) =>
-                    ticket._id === updatedTicket._id
-                      ? updatedTicket
-                      : ticket
-                  )
+              onTicketUpdated={(
+                updatedTicket
+              ) => {
+
+                setTickets(
+                  (previous) =>
+                    previous.map(
+                      (ticket) =>
+                        ticket._id ===
+                        updatedTicket._id
+                          ? updatedTicket
+                          : ticket
+                    )
                 );
 
-                setSelectedTicket(updatedTicket);
+                setSelectedTicket(
+                  updatedTicket
+                );
+
+                fetchDashboard();
               }}
             />
           )}
 
       </main>
+
     </div>
   );
 }
